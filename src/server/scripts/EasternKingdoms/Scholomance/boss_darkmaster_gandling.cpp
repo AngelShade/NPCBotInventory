@@ -198,6 +198,20 @@ public:
         {
             instance->SetData(DATA_DARKMASTER_GANDLING, DONE);
             OpenAllGates();
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            if (!players.IsEmpty())
+            {
+                uint32 baseRewardLevel = 1;
+                bool isDungeon = me->GetMap()->IsDungeon();
+
+                for (auto const& playerPair : players)
+                {
+                    if (Player* player = playerPair.GetSource())
+                    {
+                        DistributeChallengeRewards(player, me, baseRewardLevel, isDungeon);
+                    }
+                }
+            }
         }
 
         void SetData(uint32 type, uint32 data) override

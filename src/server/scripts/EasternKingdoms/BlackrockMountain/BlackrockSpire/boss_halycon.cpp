@@ -71,6 +71,20 @@ public:
             _JustDied();
             me->SummonCreature(NPC_GIZRUL_THE_SLAVENER, SummonLocation, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 300000);
             Talk(EMOTE_DEATH);
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            if (!players.IsEmpty())
+            {
+                uint32 baseRewardLevel = 1;
+                bool isDungeon = me->GetMap()->IsDungeon();
+
+                for (auto const& playerPair : players)
+                {
+                    if (Player* player = playerPair.GetSource())
+                    {
+                        DistributeChallengeRewards(player, me, baseRewardLevel, isDungeon);
+                    }
+                }
+            }
         }
 
         void UpdateAI(uint32 diff) override

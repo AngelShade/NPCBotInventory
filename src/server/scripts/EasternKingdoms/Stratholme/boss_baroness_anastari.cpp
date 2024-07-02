@@ -75,6 +75,20 @@ public:
         void JustDied(Unit* /*killer*/) override
         {
             instance->SetData(TYPE_ZIGGURAT1, IN_PROGRESS);
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            if (!players.IsEmpty())
+            {
+                uint32 baseRewardLevel = 1;
+                bool isDungeon = me->GetMap()->IsDungeon();
+
+                for (auto const& playerPair : players)
+                {
+                    if (Player* player = playerPair.GetSource())
+                    {
+                        DistributeChallengeRewards(player, me, baseRewardLevel, isDungeon);
+                    }
+                }
+            }
         }
 
         void UpdateAI(uint32 diff) override

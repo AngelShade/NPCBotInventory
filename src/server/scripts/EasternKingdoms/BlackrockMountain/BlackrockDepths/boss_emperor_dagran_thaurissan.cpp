@@ -18,7 +18,6 @@
 #include "CreatureScript.h"
 #include "ScriptedCreature.h"
 #include "blackrock_depths.h"
-#include "../scripts/Custom/Timewalking/10Man.h"
 
 enum Yells
 {
@@ -119,7 +118,7 @@ public:
             Map::PlayerList const& players = me->GetMap()->GetPlayers();
             if (players.begin() != players.end())
             {
-                uint32 baseRewardLevel = 2;
+                uint32 baseRewardLevel = 1;
                 bool isDungeon = me->GetMap()->IsDungeon();
 
                 Player* player = players.begin()->GetSource();

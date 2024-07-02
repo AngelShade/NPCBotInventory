@@ -862,14 +862,14 @@ public:
                     return true;
             }
             //Greater Heal
-            if (IsSpellReady(GREATER_HEAL_1, diff) && hp <= 40 && !IsCasting() && !target->getAttackers().empty() &&
-                xphploss > _heals[GREATER_HEAL_1])
-            {
-                if (doCast(target, GetSpell(GREATER_HEAL_1)))
-                {
-                    return true; 
-                }
-            }
+            //if (IsSpellReady(GREATER_HEAL_1, diff) && hp <= 40 && !IsCasting() && !target->getAttackers().empty() &&
+            //    xphploss > _heals[GREATER_HEAL_1])
+           // {
+            //    if (doCast(target, GetSpell(GREATER_HEAL_1)))
+             //   {
+             //       return true; 
+             //   }
+            //}
 
             return false;
         }

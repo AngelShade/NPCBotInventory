@@ -18,7 +18,6 @@
 #include "CreatureScript.h"
 #include "ScriptedCreature.h"
 #include "blackrock_spire.h"
-#include "../scripts/Custom/Timewalking/10Man.h"
 
 enum Spells
 {

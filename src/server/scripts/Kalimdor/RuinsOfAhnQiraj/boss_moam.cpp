@@ -75,7 +75,7 @@ struct boss_moam : public BossAI
         Talk(EMOTE_AGGRO);
         events.ScheduleEvent(EVENT_STONE_PHASE, 90s);
         events.ScheduleEvent(EVENT_SPELL_TRAMPLE, 9s);
-        events.ScheduleEvent(EVENT_SPELL_DRAIN_MANA, 3s);
+        events.ScheduleEvent(EVENT_SPELL_DRAIN_MANA, 6s);
     }
 
     void JustDied(Unit* /*killer*/) override
@@ -139,7 +139,7 @@ struct boss_moam : public BossAI
                     break;
                 case EVENT_SPELL_DRAIN_MANA:
                     DoCastAOE(SPELL_DRAIN_MANA_SERVERSIDE);
-                    events.ScheduleEvent(EVENT_SPELL_DRAIN_MANA, 2s, 6s);
+                    events.ScheduleEvent(EVENT_SPELL_DRAIN_MANA, 4s, 8s);
                     break;
                 case EVENT_SPELL_TRAMPLE:
                     DoCastAOE(SPELL_TRAMPLE);

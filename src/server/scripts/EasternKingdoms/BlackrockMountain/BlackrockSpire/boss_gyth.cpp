@@ -102,6 +102,20 @@ public:
         void JustDied(Unit* /*killer*/) override
         {
             instance->SetBossState(DATA_GYTH, DONE);
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            if (!players.IsEmpty())
+            {
+                uint32 baseRewardLevel = 1;
+                bool isDungeon = me->GetMap()->IsDungeon();
+
+                for (auto const& playerPair : players)
+                {
+                    if (Player* player = playerPair.GetSource())
+                    {
+                        DistributeChallengeRewards(player, me, baseRewardLevel, isDungeon);
+                    }
+                }
+            }
         }
 
         void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*type*/, SpellSchoolMask /*school*/) override

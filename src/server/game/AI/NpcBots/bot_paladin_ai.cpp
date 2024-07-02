@@ -1346,6 +1346,13 @@ public:
 
             float dist = me->GetDistance(mytar);
 
+            //Crusader Strike - moved higher for increased priority and usage
+            if (IsSpellReady(CRUSADER_STRIKE_1, diff) && can_do_normal && HasRole(BOT_ROLE_TANK | BOT_ROLE_DPS | BOT_ROLE_TANK_OFF) && dist < 6 && Rand() < 90)
+            {
+                if (doCast(mytar, GetSpell(CRUSADER_STRIKE_1)))
+                    return;
+            }
+
             //HAMMER OF WRATH
             if (IsSpellReady(HAMMER_OF_WRATH_1, diff) && can_do_holy && HasRole(BOT_ROLE_DPS) && Rand() < 80 &&
                 mytar->HasAuraState(AURA_STATE_HEALTHLESS_20_PERCENT) && dist < 30)
@@ -1412,13 +1419,10 @@ public:
             }
             //Avenging Wrath (tank - big threat, dps - big hp, heal - divine plea counter)
             if (IsSpellReady(AVENGING_WRATH_1, diff, false) && can_do_holy && avDelayTimer <= diff &&
-                HasRole(BOT_ROLE_HEAL|BOT_ROLE_DPS) && Rand() < 35 && dist < 30 &&
-                IsTank() ? (mytar->GetTypeId() == TYPEID_UNIT && (mytar->ToCreature()->IsDungeonBoss() || mytar->ToCreature()->isWorldBoss())) :
-                (!HasRole(BOT_ROLE_HEAL) || !HasRole(BOT_ROLE_RANGED)) ? (mytar->GetHealth() > me->GetMaxHealth()/4 * (1 + mytar->getAttackers().size())) :
-                (me->GetAuraEffect(SPELL_AURA_OBS_MOD_POWER, SPELLFAMILY_PALADIN, 0x0, 0x80004000, 0x1) != nullptr))
+                HasRole(BOT_ROLE_HEAL | BOT_ROLE_DPS) && Rand() < 70 && dist < 30)  // Increased the chance to 70%
             {
                 if (doCast(me, GetSpell(AVENGING_WRATH_1)))
-                {}
+                    return;
             }
             //Avenger's shield
             if (IsSpellReady(AVENGERS_SHIELD_1, diff) && can_do_holy && CanBlock() &&
@@ -1538,14 +1542,8 @@ public:
                 if (doCast(mytar, GetSpell(SHIELD_OF_RIGHTEOUSNESS_1)))
                     return;
             }
-            //Crusader Strike
-            if (IsSpellReady(CRUSADER_STRIKE_1, diff) && can_do_normal && HasRole(BOT_ROLE_TANK | BOT_ROLE_DPS | BOT_ROLE_TANK_OFF) && dist < 5 && Rand() < 90)
-            {
-                if (doCast(mytar, GetSpell(CRUSADER_STRIKE_1)))
-                    return;
-            }
             //Divine Storm
-            if (IsSpellReady(DIVINE_STORM_1, diff) && can_do_normal && HasRole(BOT_ROLE_DPS) && dist < 7 && Rand() < 40)
+            if (IsSpellReady(DIVINE_STORM_1, diff) && can_do_normal && HasRole(BOT_ROLE_DPS) && dist < 7 && Rand() < 90)
             {
                 if (doCast(me, GetSpell(DIVINE_STORM_1)))
                     return;
@@ -1584,7 +1582,7 @@ public:
                 crit_chance += 5.f;
             //Sanctified Wrath: 50% additional critical chance for Hammer of Wrath
             if ((GetSpec() == BOT_SPEC_PALADIN_RETRIBUTION) && lvl >= 45 && baseId == HAMMER_OF_WRATH_1)
-                crit_chance += 50.f;
+                crit_chance += 55.f;
             //Fanaticism: 18% additional critical chance for all Judgements (not shure which check is right)
             if ((GetSpec() == BOT_SPEC_PALADIN_RETRIBUTION) && lvl >= 45 && spellInfo->GetCategory() == SPELLCATEGORY_JUDGEMENT)
                 crit_chance += 18.f;
@@ -1616,11 +1614,11 @@ public:
             //}
             //Sanctity of Battle: 15% bonus damage for Exorcism and Crusader Strike
             if ((GetSpec() == BOT_SPEC_PALADIN_RETRIBUTION) && lvl >= 25 && baseId == EXORCISM_1)
-                pctbonus += 0.15f;
+                pctbonus += 0.17f;
             //The Art of War (damage part): 10% bonus damage for Judgements, Crusader Strike and Divine Storm
             if ((GetSpec() == BOT_SPEC_PALADIN_RETRIBUTION) && lvl >= 40 &&
                 (spellInfo->GetCategory() == SPELLCATEGORY_JUDGEMENT || baseId == CRUSADER_STRIKE_1 || baseId == DIVINE_STORM_1))
-                pctbonus += 0.1f;
+                pctbonus += 0.12f;
             //Judgements of the Pure (damage part): 25% bonus damage for Judgements and Seals
             if ((GetSpec() == BOT_SPEC_PALADIN_HOLY) && lvl >= 50 &&
                 (spellInfo->GetCategory() == SPELLCATEGORY_JUDGEMENT ||
@@ -1629,7 +1627,7 @@ public:
                 pctbonus += 0.25f;
             //Glyph of Exorcism: 20% bonus damage for Exorcism
             if (lvl >= 50 && baseId == EXORCISM_1)
-                pctbonus += 0.2f;
+                pctbonus += 0.22f;
 
             damage = int32(fdamage * (1.0f + pctbonus));
         }
@@ -1651,7 +1649,7 @@ public:
                 (spellInfo->GetCategory() == SPELLCATEGORY_JUDGEMENT ||
                 spellInfo->GetSpellSpecific() == SPELL_SPECIFIC_SEAL ||
                 spellId == JUDGEMENT_OF_COMMAND_DAMAGE))
-                pctbonus += 0.25f;
+                pctbonus += 0.26f;
             //Improved Consecration (id: 38422): 10% bonus damage for Consecration
             if (lvl >= 20 && spellId == GetSpell(CONSECRATION_1))
                 pctbonus += 0.1f;

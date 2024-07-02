@@ -157,6 +157,20 @@ public:
             OpenDoors(true);
             // Complete encounter
             instance->SetBossState(DATA_PYROGAURD_EMBERSEER, DONE);
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            if (!players.IsEmpty())
+            {
+                uint32 baseRewardLevel = 1;
+                bool isDungeon = me->GetMap()->IsDungeon();
+
+                for (auto const& playerPair : players)
+                {
+                    if (Player* player = playerPair.GetSource())
+                    {
+                        DistributeChallengeRewards(player, me, baseRewardLevel, isDungeon);
+                    }
+                }
+            }
         }
 
         void SpellHit(Unit* /*caster*/, SpellInfo const* spell) override

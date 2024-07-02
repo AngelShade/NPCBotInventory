@@ -1302,10 +1302,10 @@ public:
             if (AuraEffect const* pow = me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_MAGE, 0x0, 0x80000, 0x0))
                 if (pow->IsAffectedOnSpell(spellInfo))
                     pctbonus += 0.2f;
-            //Molten Fury: 12% bonus damage for All spells against target with less than 35% hp
+            //Molten Fury: 12% bonus damage for All spells against target with less than 35% hp (increased to 15% for scorch executes)
             if ((GetSpec() == BOT_SPEC_MAGE_FIRE) &&
                 lvl >= 40 && damageinfo.target->HasAuraState(AURA_STATE_HEALTHLESS_35_PERCENT))
-                pctbonus += 0.12f;
+                pctbonus += 0.15f;
             //Arctic Winds part 1: 5% bonus damage for Frost spells
             if ((GetSpec() == BOT_SPEC_MAGE_FROST) && lvl >= 40 && (SPELL_SCHOOL_MASK_FROST & spellInfo->GetSchoolMask()))
                 pctbonus += 0.05f;

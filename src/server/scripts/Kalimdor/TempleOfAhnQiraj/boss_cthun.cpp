@@ -534,9 +534,12 @@ struct boss_cthun : public BossAI
                         {
                             if (Player* player = itr->GetSource())
                             {
-                                if (player->IsWithinDistInMap(me, 150.0f))  // adjust the range if necessary
+                                if (player->IsWithinDistInMap(me, 150.0f))  
                                 {
-                                    DoCast(player, SPELL_DIGESTIVE_ACID, true);
+                                    if (!player->HasAura(SPELL_DIGESTIVE_ACID))
+                                    {
+                                        DoCast(player, SPELL_DIGESTIVE_ACID, true);
+                                    }
                                 }
                             }
                         }

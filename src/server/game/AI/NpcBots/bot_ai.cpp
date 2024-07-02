@@ -7579,7 +7579,7 @@ void bot_ai::_OnAreaUpdate(uint32 areaId)
     if (!IAmFree())
     {
         //Dinkle: Challenge Auras + Xaveric
-        std::list<uint32> challengeAuras = { 208001, 800142, 800139, 107099, 880139, 861617, 103368 };
+        std::list<uint32> challengeAuras = { 208001, 800142, 800139, 107099, 880139, 861617, 103368, 80094 };
         // Get current map type
         Map* map = me->GetMap();
         MapEntry const* mapEntry = sMapStore.LookupEntry(map->GetId());
@@ -9185,7 +9185,7 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
             //if (action - GOSSIP_ACTION_INFO_DEF != BOT_SLOT_NONE)
             //    break;
 
-            EquipmentInfo const* einfo = BotDataMgr::GetBotEquipmentInfo(me->GetEntry());
+            EquipmentInfo const* einfo = BotDataMgr::GetBotEquipmentInfo(creature->GetEntry());
             ASSERT(einfo, "Trying to send equipment list for bot with no equip info!");
 
             for (uint8 i = BOT_SLOT_MAINHAND; i != BOT_INVENTORY_SIZE; ++i)
@@ -9205,8 +9205,10 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
             msg2 << "GS: " << uint32(GetBotGearScores().first);
             BotWhisper(msg2.str(), player);
 
-            break;
+            // Redirect to case 1
+            return bot_ai::OnGossipHello(player, 0);
         }
+        
         case GOSSIP_SENDER_EQUIP_TRANSMOGRIFY_MHAND:     //0 - 1 main hand
         case GOSSIP_SENDER_EQUIP_TRANSMOGRIFY_OHAND:     //1 - 1 off hand
         case GOSSIP_SENDER_EQUIP_TRANSMOGRIFY_RANGED:    //2 - 1 ranged
@@ -10553,6 +10555,12 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                     SpellCastTargets targets;
                     targets.SetUnitTarget(me);
                     _castBotItemUseSpell(item, targets);
+
+                    // Remove Holy Mightstone (Item ID: 20620) after use
+                    if (item->GetEntry() == 20620)
+                    {
+                        player->DestroyItemCount(item->GetEntry(), 1, false);
+                    }
                 }
             }
 
@@ -14864,10 +14872,18 @@ void bot_ai::DefaultInit()
 void bot_ai::ApplyRacials()
 {
     uint8 myrace = me->GetRace();
+    uint8 myclass = GetBotClass();
+
+    // Dinkle: Hero Bots
+    //if (me->GetEntry() == 70897 || me->GetEntry() == 84248)
+    //{
+    //    RefreshAura(24425); 
+    //}
+
     //Dinkle: Onyxia Scale Cloak
     RefreshAura(22683);
-    // Dinkle: Check if the bot is a Tank or OffTank and refresh threat aura if true
-    if (IsTank() || IsOffTank()) {
+    // Dinkle: Check if the bot is a Tank or OffTank and refresh threat aura if true and not a Death Knight
+    if ((IsTank() || IsOffTank()) && myclass != BOT_CLASS_DEATH_KNIGHT) {
         RefreshAura(825780);
     }
     switch (myrace)

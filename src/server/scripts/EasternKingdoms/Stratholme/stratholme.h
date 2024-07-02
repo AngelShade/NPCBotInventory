@@ -19,18 +19,22 @@
 #define DEF_STRATHOLME_H
 
 #include "SpellAuras.h"
+#include "../scripts/Custom/Timewalking/10Man.h"
+
 
 #define DataHeader "STR"
 #define StratholmeScriptName "instance_stratholme"
 
 enum DataTypes
 {
-    TYPE_BARON_RUN = 0,
-    TYPE_ZIGGURAT1 = 1,
-    TYPE_ZIGGURAT2 = 2,
-    TYPE_ZIGGURAT3 = 3,
-    TYPE_BARON_FIGHT = 4,
-    TYPE_MALLOW = 5,
+
+    TYPE_BARON_RUN                      = 0,
+    TYPE_ZIGGURAT1                      = 1,
+    TYPE_ZIGGURAT2                      = 2,
+    TYPE_ZIGGURAT3                      = 3,
+    TYPE_BARON_FIGHT                    = 4,
+    TYPE_MALLOW                         = 5,
+    TYPE_BARTHILAS_RUN                  = 6,
 
 
     DATA_BARON_RUN_NONE = 0,
@@ -41,20 +45,21 @@ enum DataTypes
 
 enum CreatureIds
 {
-    NPC_BARON_RIVENDARE = 10440,
-    NPC_BILE_SPEWER = 10416,
-    NPC_VENOM_BELCHER = 10417,
-    NPC_RAMSTEIN_THE_GORGER = 10439,
-    NPC_MINDLESS_UNDEAD = 11030,
-    NPC_BLACK_GUARD = 10394,
-    NPC_YSIDA = 16031,
-    NPC_PLAGUED_RAT = 10441,
-    NPC_PLAGUED_INSECT = 10461,
-    NPC_PLAGUED_MAGGOT = 10536,
-    NPC_JARIEN = 16101,
-    NPC_SOTHOS = 16102,
-    NPC_SPIRIT_OF_JARIEN = 16103,
-    NPC_SPIRIT_OF_SOTHOS = 16104
+    NPC_BARTHILAS                       = 10435,
+    NPC_BARON_RIVENDARE                 = 10440,
+    NPC_BILE_SPEWER                     = 10416,
+    NPC_VENOM_BELCHER                   = 10417,
+    NPC_RAMSTEIN_THE_GORGER             = 10439,
+    NPC_MINDLESS_UNDEAD                 = 11030,
+    NPC_BLACK_GUARD                     = 10394,
+    NPC_YSIDA                           = 16031,
+    NPC_PLAGUED_RAT                     = 10441,
+    NPC_PLAGUED_INSECT                  = 10461,
+    NPC_PLAGUED_MAGGOT                  = 10536,
+    NPC_JARIEN                          = 16101,
+    NPC_SOTHOS                          = 16102,
+    NPC_SPIRIT_OF_JARIEN                = 16103,
+    NPC_SPIRIT_OF_SOTHOS                = 16104
 };
 
 enum GameobjectIds

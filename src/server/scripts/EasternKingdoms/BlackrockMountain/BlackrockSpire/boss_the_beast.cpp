@@ -164,15 +164,17 @@ public:
         {
             DespawnFirewall();
             Map::PlayerList const& players = me->GetMap()->GetPlayers();
-            if (players.begin() != players.end())
+            if (!players.IsEmpty())
             {
                 uint32 baseRewardLevel = 1;
                 bool isDungeon = me->GetMap()->IsDungeon();
 
-                Player* player = players.begin()->GetSource();
-                if (player)
+                for (auto const& playerPair : players)
                 {
-                    DistributeChallengeRewards(player, me, baseRewardLevel, isDungeon);
+                    if (Player* player = playerPair.GetSource())
+                    {
+                        DistributeChallengeRewards(player, me, baseRewardLevel, isDungeon);
+                    }
                 }
             }
         }

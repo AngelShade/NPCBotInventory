@@ -22,7 +22,7 @@ void AddSC_AttackerSpawnModule();
 //void AddSC_KindlingFuryHandler();
 void AddSC_Xaveric();
 void AddSC_Hardcore();
-void AddSC_SafeAreas();
+//void AddSC_SafeAreas();
 void AddSC_TENMAN();
 void AddSC_spell_custom_haste_to_speed();
 void AddSC_KarazhanTW();
@@ -88,7 +88,7 @@ void AddSC_custom_symbiosis_remover();
 void AddSC_custom_flying_spell_scripts();
 void AddSC_DKQuestBugFix();
 void AddSC_spell_prismatic_guard();
-
+void AddSC_cathedral_of_light();
 
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
@@ -104,7 +104,7 @@ void AddCustomScripts()
    // AddSC_KindlingFuryHandler();
     AddSC_Xaveric();
     AddSC_Hardcore();
-    AddSC_SafeAreas();
+    //AddSC_SafeAreas();
     AddSC_TENMAN();
     AddSC_spell_custom_haste_to_speed();
     AddSC_KarazhanTW();
@@ -170,6 +170,7 @@ void AddCustomScripts()
     AddSC_custom_flying_spell_scripts();
     AddSC_DKQuestBugFix();
     AddSC_spell_prismatic_guard();
+    AddSC_cathedral_of_light();
 
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();
