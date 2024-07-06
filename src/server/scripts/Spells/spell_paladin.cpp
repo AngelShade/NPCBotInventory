@@ -100,7 +100,12 @@ enum PaladinSpells
 
     // Crystalforge Raiment - Tier 5 Holy 2 Set
     SPELL_IMPROVED_JUDGEMENT                     = 37188,
-    SPELL_IMPROVED_JUDGEMENT_ENERGIZE            = 43838
+    SPELL_IMPROVED_JUDGEMENT_ENERGIZE            = 43838,
+
+    SPELL_PALADIN_HOLY_VENGEANCE                 = 31803,
+    SPELL_PALADIN_BLOOD_CORRUPTION               = 53742,
+    SPELL_PALADIN_SEAL_OF_VENGEANCE_EFFECT       = 42463,
+    SPELL_PALADIN_SEAL_OF_CORRUPTION_EFFECT      = 53739
 };
 
 enum PaladinSpellIcons
@@ -150,12 +155,6 @@ public:
         }
     }
 };
-
-void AddSC_dual_crusader()
-{
-    new dual_crusader();
-}
-
 
 class spell_pal_seal_of_command_aura : public AuraScript
 {
@@ -1176,6 +1175,34 @@ class spell_pal_righteous_defense : public SpellScript
     }
 };
 
+// 35395 - Crusader Strike
+class spell_pal_crusader_strike : public SpellScript
+{
+    PrepareSpellScript(spell_pal_crusader_strike);
+
+    void HandleOnHit()
+    {
+        Unit* caster = GetCaster();
+        if (!caster || !caster->HasAura(888051)) // Check if caster has the required aura
+            return;
+
+        Unit* target = GetHitUnit();
+        if (!target)
+            return;
+
+        int32 damage = GetHitDamage();
+        int32 dotDamage = CalculatePct(damage, 6.25); // 6.25% of damage for each tick
+
+        // Apply the DoT as a new instance each time
+        caster->CastCustomSpell(target, 888050, &dotDamage, nullptr, nullptr, true);
+    }
+
+    void Register() override
+    {
+        OnHit += SpellHitFn(spell_pal_crusader_strike::HandleOnHit);
+    }
+};
+
 // 20154, 21084 - Seal of Righteousness - melee proc dummy (addition ${$MWS*(0.022*$AP+0.044*$SPH)} damage)
 class spell_pal_seal_of_righteousness : public AuraScript
 {
@@ -1227,30 +1254,42 @@ class spell_pal_seal_of_righteousness : public AuraScript
     }
 };
 
-class spell_pal_crusader_strike : public SpellScript
+// 42463 - Seal of Vengeance
+// 53739 - Seal of Corruption
+class spell_pal_seal_of_vengeance : public SpellScript
 {
-    PrepareSpellScript(spell_pal_crusader_strike);
+    PrepareSpellScript(spell_pal_seal_of_vengeance);
 
-    void HandleOnHit()
+    bool Validate(SpellInfo const* /*spellInfo*/) override
     {
-        Unit* caster = GetCaster();
-        if (!caster || !caster->HasAura(888051)) // Check if caster has the required aura
-            return;
+        return ValidateSpellInfo({ SPELL_PALADIN_SEAL_OF_VENGEANCE_EFFECT, SPELL_PALADIN_SEAL_OF_CORRUPTION_EFFECT });
+    }
 
-        Unit* target = GetHitUnit();
-        if (!target)
-            return;
-
+    void HandleScriptEffect(SpellEffIndex /*effIndex*/)
+    {
+        Unit* target = GetExplTargetUnit();
+        uint32 spellId = GetSpell()->GetSpellInfo()->Id;
+        uint32 auraId = (spellId == SPELL_PALADIN_SEAL_OF_VENGEANCE_EFFECT)
+            ? SPELL_PALADIN_HOLY_VENGEANCE
+            : SPELL_PALADIN_BLOOD_CORRUPTION;
         int32 damage = GetHitDamage();
-        int32 dotDamage = CalculatePct(damage, 6.25); // 6.25% of damage for each tick
+        uint8 stacks = 0;
 
-        // Apply the DoT as a new instance each time
-        caster->CastCustomSpell(target, 888050, &dotDamage, nullptr, nullptr, true);
+        if (target)
+        {
+            Aura* aura = target->GetAura(auraId, GetCaster()->GetGUID());
+            if (aura)
+                stacks = aura->GetStackAmount();
+
+            damage = ((damage * stacks) / 5);
+
+            SetHitDamage(damage);
+        }
     }
 
     void Register() override
     {
-        OnHit += SpellHitFn(spell_pal_crusader_strike::HandleOnHit);
+        OnEffectHitTarget += SpellEffectFn(spell_pal_seal_of_vengeance::HandleScriptEffect, EFFECT_0, SPELL_EFFECT_WEAPON_PERCENT_DAMAGE);
     }
 };
 
@@ -1281,7 +1320,8 @@ void AddSC_paladin_spell_scripts()
     RegisterSpellScript(spell_pal_lay_on_hands);
     RegisterSpellScript(spell_pal_righteous_defense);
     RegisterSpellScript(spell_pal_seal_of_righteousness);
-    new dual_crusader();
     RegisterSpellScript(spell_pal_crusader_strike);
+    RegisterSpellScript(spell_pal_seal_of_vengeance);
+    new dual_crusader();
 }
 

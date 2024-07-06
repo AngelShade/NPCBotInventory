@@ -70,7 +70,7 @@ public:
     std::unordered_set<uint32> SPELL_ICE_LANCE = { 100241, 100242, 100243 };
 
     std::unordered_set<uint32> SPELL_FROSTBOLT = {
-        116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304, 27071, 27072, 38697, 42841, 42842
+        116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304, 27071, 27072, 38697, 42841, 42842, 844614
     };
 
     std::unordered_set<uint32> SPELL_FROSTFIREBOLT = {
@@ -98,7 +98,7 @@ public:
                     {
                         player->AddAura(SPELL_AURA_FROST_STACK, player);
                     }
-                    else if (aura->GetStackAmount() < 6)  // Check to prevent adding more than 6 stacks
+                    else if (aura->GetStackAmount() < 6)  
                     {
                         aura->ModStackAmount(1);
                     }
@@ -111,12 +111,10 @@ public:
             Aura* aura = player->GetAura(SPELL_AURA_FROST_STACK);
             if (!aura || aura->GetStackAmount() < 6)
             {
-                // Cancel the spell if the player doesn't have enough stacks
                 spell->cancel();
                 return;
             }
 
-            // Remove the stacks when the spell is used
             player->RemoveAura(SPELL_AURA_FROST_STACK);
         }
     }

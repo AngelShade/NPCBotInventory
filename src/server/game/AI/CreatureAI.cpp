@@ -29,7 +29,7 @@
 #include "Vehicle.h"
 #include "ZoneScript.h"
 
-//Disable CreatureAI when charmed
+ //Disable CreatureAI when charmed
 void CreatureAI::OnCharmed(bool /*apply*/)
 {
     //me->IsAIEnabled = !apply;*/
@@ -52,9 +52,9 @@ void CreatureAI::Talk(uint8 id, WorldObject const* target /*= nullptr*/, Millise
     if (delay > Seconds::zero())
     {
         me->m_Events.AddEventAtOffset([this, id, target]()
-        {
-            sCreatureTextMgr->SendChat(me, id, target);
-        }, delay);
+            {
+                sCreatureTextMgr->SendChat(me, id, target);
+            }, delay);
     }
     else
     {
@@ -163,8 +163,8 @@ void CreatureAI::MoveInLineOfSight(Unit* who)
     // pussywizard: civilian, non-combat pet or any other NOT HOSTILE TO ANYONE (!)
     if (me->IsMoveInLineOfSightDisabled())
         if (me->GetCreatureType() == CREATURE_TYPE_NON_COMBAT_PET ||      // nothing more to do, return
-                !who->IsInCombat() ||                                         // if not in combat, nothing more to do
-                !me->IsWithinDist(who, ATTACK_DISTANCE, true, false))                      // if in combat and in dist - neutral to all can actually assist other creatures
+            !who->IsInCombat() ||                                         // if not in combat, nothing more to do
+            !me->IsWithinDist(who, ATTACK_DISTANCE, true, false))                      // if in combat and in dist - neutral to all can actually assist other creatures
             return;
 
     if (me->HasReactState(REACT_AGGRESSIVE) && me->CanStartAttack(who))
@@ -223,14 +223,14 @@ void CreatureAI::EnterEvadeMode(EvadeReason why)
         me->GetVehicleKit()->Reset(true);
     }
 
+    sScriptMgr->OnUnitEnterEvadeMode(me, why);
+
     // despawn bosses at reset - only verified tbc/woltk bosses with this reset type
     CreatureTemplate const* cInfo = sObjectMgr->GetCreatureTemplate(me->GetEntry());
     if (cInfo && cInfo->HasFlagsExtra(CREATURE_FLAG_EXTRA_HARD_RESET))
     {
         me->DespawnOnEvade();
     }
-
-    sScriptMgr->OnUnitEnterEvadeMode(me, why);
 }
 
 /*void CreatureAI::AttackedBy(Unit* attacker)
@@ -342,14 +342,14 @@ bool CreatureAI::_EnterEvadeMode(EvadeReason /*why*/)
 
 void CreatureAI::MoveCircleChecks()
 {
-    Unit *victim = me->GetVictim();
+    Unit* victim = me->GetVictim();
 
     if (
         !victim ||
         !me->IsFreeToMove() || me->HasUnitMovementFlag(MOVEMENTFLAG_ROOT) ||
         !me->IsWithinMeleeRange(victim) || me == victim->GetVictim() ||
         (!victim->IsPlayer() && !victim->IsPet())  // only player & pets to save CPU
-    )
+        )
     {
         return;
     }
@@ -359,7 +359,7 @@ void CreatureAI::MoveCircleChecks()
 
 void CreatureAI::MoveBackwardsChecks()
 {
-    Unit *victim = me->GetVictim();
+    Unit* victim = me->GetVictim();
 
     if (!victim || !me->IsFreeToMove() || me->HasUnitMovementFlag(MOVEMENTFLAG_ROOT) ||
         (!victim->IsPlayer() && !victim->IsPet()))

@@ -118,101 +118,95 @@ public:
 };
 
 // 19822 Play Dead
-class spell_mc_play_dead : public SpellScriptLoader
+class spell_mc_play_dead_aura : public AuraScript
 {
-public:
-    spell_mc_play_dead() : SpellScriptLoader("spell_mc_play_dead") { }
+    PrepareAuraScript(spell_mc_play_dead_aura);
 
-    class spell_mc_play_dead_AuraScript : public AuraScript
+    bool Validate(SpellInfo const* /*spellInfo*/) override
     {
-        PrepareAuraScript(spell_mc_play_dead_AuraScript);
+        return ValidateSpellInfo({ SPELL_PLAY_DEAD_PACIFY, SPELL_PLAY_DEAD });
+    }
 
-        bool Load() override
+    bool Load() override
+    {
+        return GetCaster()->GetTypeId() == TYPEID_UNIT;
+    }
+
+    void HandleEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        Creature* creatureTarget = GetTarget()->ToCreature();
+        if (!creatureTarget)
         {
-            return GetCaster()->GetTypeId() == TYPEID_UNIT;
+            return;
         }
 
-        void HandleEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        creatureTarget->CastSpell(creatureTarget, SPELL_PLAY_DEAD_PACIFY, true);
+        creatureTarget->SetDynamicFlag(UNIT_DYNFLAG_DEAD);
+        creatureTarget->SetUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
+        //creatureTarget->SetUnitFlag(UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC);
+        creatureTarget->SetReactState(REACT_PASSIVE);
+        creatureTarget->SetControlled(true, UNIT_STATE_ROOT);
+
+        creatureTarget->AttackStop();
+    }
+
+    void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+    {
+        Creature* creatureTarget = GetTarget()->ToCreature();
+        if (!creatureTarget)
         {
-            Creature* creatureTarget = GetTarget()->ToCreature();
-            if (!creatureTarget)
-            {
-                return;
-            }
-
-            creatureTarget->CastSpell(creatureTarget, SPELL_PLAY_DEAD_PACIFY, true);
-            creatureTarget->SetDynamicFlag(UNIT_DYNFLAG_DEAD);
-            creatureTarget->SetUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
-            //creatureTarget->SetUnitFlag(UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC);
-            creatureTarget->SetReactState(REACT_PASSIVE);
-            creatureTarget->SetControlled(true, UNIT_STATE_ROOT);
-
-            creatureTarget->AttackStop();
+            return;
         }
 
-        void HandleEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
+        creatureTarget->RemoveAurasDueToSpell(SPELL_PLAY_DEAD_PACIFY);
+        creatureTarget->RemoveDynamicFlag(UNIT_DYNFLAG_DEAD);
+        creatureTarget->RemoveUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
+        //creatureTarget->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC);
+        creatureTarget->SetControlled(false, UNIT_STATE_ROOT);
+        creatureTarget->SetReactState(REACT_AGGRESSIVE);
+
+        if (!creatureTarget->IsInCombat())
         {
-            Creature* creatureTarget = GetTarget()->ToCreature();
-            if (!creatureTarget)
-            {
-                return;
-            }
+            return;
+        }
 
-            creatureTarget->RemoveAurasDueToSpell(SPELL_PLAY_DEAD_PACIFY);
-            creatureTarget->RemoveDynamicFlag(UNIT_DYNFLAG_DEAD);
-            creatureTarget->RemoveUnitFlag2(UNIT_FLAG2_FEIGN_DEATH);
-            //creatureTarget->RemoveUnitFlag(UNIT_FLAG_IMMUNE_TO_PC | UNIT_FLAG_IMMUNE_TO_NPC);
-            creatureTarget->SetControlled(false, UNIT_STATE_ROOT);
-            creatureTarget->SetReactState(REACT_AGGRESSIVE);
+        bool shouldDie = true;
+        std::list<Creature*> hounds;
+        creatureTarget->GetCreaturesWithEntryInRange(hounds, 50.0f, NPC_CORE_HOUND);
 
-            if (!creatureTarget->IsInCombat())
-            {
-                return;
-            }
-
-            bool shouldDie = true;
-            std::list<Creature*> hounds;
-            creatureTarget->GetCreaturesWithEntryInRange(hounds, 50.0f, NPC_CORE_HOUND);
-
-            // Perform lambda based check to find if there is any nearby
-            if (!hounds.empty())
-            {
-                // Alive hound been found within 80 yards -> cancel suicide
-                if (std::find_if(hounds.begin(), hounds.end(), [creatureTarget](Creature const* hound)
+        // Perform lambda based check to find if there is any nearby
+        if (!hounds.empty())
+        {
+            // Alive hound been found within 50 yards -> cancel suicide
+            if (std::find_if(hounds.begin(), hounds.end(), [creatureTarget](Creature const* hound)
                 {
                     return creatureTarget != hound && creatureTarget->IsWithinLOSInMap(hound) && hound->IsAlive() && hound->IsInCombat() && !hound->HasAura(SPELL_PLAY_DEAD);
                 }) != hounds.end())
-                {
-                    shouldDie = false;
-                }
-            }
-
-            if (!shouldDie)
             {
-                if (CreatureAI* targetAI = creatureTarget->AI())
-                {
-                    targetAI->DoCastSelf(SPELL_FIRE_NOVA_VISUAL, true);
-                    targetAI->DoCastSelf(SPELL_FULL_HEALTH, true);
-                    targetAI->Talk(EMOTE_IGNITE);
-                }
-            }
-            else
-            {
-                Unit::Kill(creatureTarget, creatureTarget);
-                creatureTarget->DespawnOrUnsummon(14000);
+                shouldDie = false;
             }
         }
 
-        void Register() override
+        if (!shouldDie)
         {
-            AfterEffectApply += AuraEffectApplyFn(spell_mc_play_dead_AuraScript::HandleEffectApply, EFFECT_0, SPELL_AURA_FEIGN_DEATH, AURA_EFFECT_HANDLE_REAL);
-            AfterEffectRemove += AuraEffectApplyFn(spell_mc_play_dead_AuraScript::HandleEffectRemove, EFFECT_0, SPELL_AURA_FEIGN_DEATH, AURA_EFFECT_HANDLE_REAL);
+            if (CreatureAI* targetAI = creatureTarget->AI())
+            {
+                targetAI->DoCastSelf(SPELL_FIRE_NOVA_VISUAL, true);
+                targetAI->DoCastSelf(SPELL_FULL_HEALTH, true);
+                targetAI->Talk(EMOTE_IGNITE);
+            }
         }
-    };
+        else
+        {
+            Unit::Kill(creatureTarget, creatureTarget);
+            creatureTarget->DespawnOrUnsummon(14000);
+        }
+    }
 
-    AuraScript* GetAuraScript() const override
+    void Register() override
     {
-        return new spell_mc_play_dead_AuraScript();
+        AfterEffectApply += AuraEffectApplyFn(spell_mc_play_dead_aura::HandleEffectApply, EFFECT_0, SPELL_AURA_FEIGN_DEATH, AURA_EFFECT_HANDLE_REAL);
+        AfterEffectRemove += AuraEffectApplyFn(spell_mc_play_dead_aura::HandleEffectRemove, EFFECT_0, SPELL_AURA_FEIGN_DEATH, AURA_EFFECT_HANDLE_REAL);
     }
 };
 
@@ -272,6 +266,6 @@ void AddSC_molten_core()
     RegisterCreatureAI(npc_lava_spawn);
 
     // Spells
-    new spell_mc_play_dead();
+    RegisterSpellScript(spell_mc_play_dead_aura);
 }
 

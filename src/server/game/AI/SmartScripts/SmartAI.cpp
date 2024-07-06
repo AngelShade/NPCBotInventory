@@ -792,6 +792,8 @@ void SmartAI::JustReachedHome()
 
 void SmartAI::JustEngagedWith(Unit* enemy)
 {
+    me->GetMotionMaster()->Clear();
+    me->GetMotionMaster()->MoveChase(enemy);
     // Xinef: Interrupt channeled spells
     if (IsAIControlled())
         me->InterruptSpell(CURRENT_CHANNELED_SPELL, true, true);

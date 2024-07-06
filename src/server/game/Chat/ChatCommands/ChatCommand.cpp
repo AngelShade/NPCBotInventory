@@ -233,40 +233,40 @@ namespace Acore::Impl::ChatCommands
 {
     struct FilteredCommandListIterator
     {
-        public:
-            FilteredCommandListIterator(ChatSubCommandMap const& map, ChatHandler const& handler, std::string_view token)
-                : _handler{ handler }, _token{ token }, _it{ map.lower_bound(token) }, _end{ map.end() }
-            {
-                _skip();
-            }
+    public:
+        FilteredCommandListIterator(ChatSubCommandMap const& map, ChatHandler const& handler, std::string_view token)
+            : _handler{ handler }, _token{ token }, _it{ map.lower_bound(token) }, _end{ map.end() }
+        {
+            _skip();
+        }
 
-            decltype(auto) operator*() const { return _it.operator*(); }
-            decltype(auto) operator->() const { return _it.operator->(); }
-            FilteredCommandListIterator& operator++()
+        decltype(auto) operator*() const { return _it.operator*(); }
+        decltype(auto) operator->() const { return _it.operator->(); }
+        FilteredCommandListIterator& operator++()
+        {
+            ++_it;
+            _skip();
+            return *this;
+        }
+        explicit operator bool() const { return (_it != _end); }
+        bool operator!() const { return !static_cast<bool>(*this); }
+
+    private:
+        void _skip()
+        {
+            if ((_it != _end) && !StringStartsWithI(_it->first, _token))
+                _it = _end;
+            while ((_it != _end) && !_it->second.IsVisible(_handler))
             {
                 ++_it;
-                _skip();
-                return *this;
-            }
-            explicit operator bool() const { return (_it != _end); }
-            bool operator!() const { return !static_cast<bool>(*this); }
-
-        private:
-            void _skip()
-            {
                 if ((_it != _end) && !StringStartsWithI(_it->first, _token))
                     _it = _end;
-                while ((_it != _end) && !_it->second.IsVisible(_handler))
-                {
-                    ++_it;
-                    if ((_it != _end) && !StringStartsWithI(_it->first, _token))
-                        _it = _end;
-                }
             }
+        }
 
-            ChatHandler const& _handler;
-            std::string_view const _token;
-            ChatSubCommandMap::const_iterator _it, _end;
+        ChatHandler const& _handler;
+        std::string_view const _token;
+        ChatSubCommandMap::const_iterator _it, _end;
 
     };
 }
@@ -446,16 +446,16 @@ namespace Acore::Impl::ChatCommands
             { /* there are multiple matching subcommands - terminate here and show possibilities */
                 std::vector<std::string> vec;
                 auto possibility = ([prefix = std::string_view(path), suffix = std::string_view(newTail)](std::string_view match)
-                {
-                    if (prefix.empty())
                     {
-                        return Acore::StringFormatFmt("{}{}{}", match, COMMAND_DELIMITER, suffix);
-                    }
-                    else
-                    {
-                        return Acore::StringFormatFmt("{}{}{}{}{}", prefix, COMMAND_DELIMITER, match, COMMAND_DELIMITER, suffix);
-                    }
-                });
+                        if (prefix.empty())
+                        {
+                            return Acore::StringFormatFmt("{}{}{}", match, COMMAND_DELIMITER, suffix);
+                        }
+                        else
+                        {
+                            return Acore::StringFormatFmt("{}{}{}{}{}", prefix, COMMAND_DELIMITER, match, COMMAND_DELIMITER, suffix);
+                        }
+                    });
 
                 vec.emplace_back(possibility(it1->first));
 
@@ -491,14 +491,14 @@ namespace Acore::Impl::ChatCommands
     else
     { /* offer all subcommands */
         auto possibility = ([prefix = std::string_view(path)](std::string_view match)
-        {
-            if (prefix.empty())
-                return std::string(match);
-            else
             {
-                return Acore::StringFormatFmt("{}{}{}", prefix, COMMAND_DELIMITER, match);
-            }
-        });
+                if (prefix.empty())
+                    return std::string(match);
+                else
+                {
+                    return Acore::StringFormatFmt("{}{}{}", prefix, COMMAND_DELIMITER, match);
+                }
+            });
 
         std::vector<std::string> vec;
         for (FilteredCommandListIterator it(*map, handler, ""); it; ++it)
