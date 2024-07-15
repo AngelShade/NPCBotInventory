@@ -2182,7 +2182,7 @@ public:
             }
 
             //Lightning Overload
-            if ((GetSpec() == BOT_SPEC_SHAMAN_ELEMENTAL) &&
+           /* if ((GetSpec() == BOT_SPEC_SHAMAN_ELEMENTAL) &&
                 me->GetLevel() >= 45 && (baseId == LIGHTNING_BOLT_1 || baseId == CHAIN_LIGHTNING_1) &&
                 urand(1,100) <= 33)
             {
@@ -2227,7 +2227,7 @@ public:
                             me->CastSpell(target, procId, true);
                     }
                 }
-            }
+            }*/
 
             //Shields improvement, replaces Static Shock (part 2) and Improved Earth Shield (part 1)
             if (baseId == LIGHTNING_SHIELD_1 || baseId == EARTH_SHIELD_1 || baseId == WATER_SHIELD_1)
@@ -2758,6 +2758,9 @@ public:
             RefreshAura(ELEMENTAL_DEVASTATION3, isEnha && level >= 18 ? 1 : 0);
             RefreshAura(ELEMENTAL_DEVASTATION2, isEnha && level >= 15 && level < 18 ? 1 : 0);
             RefreshAura(ELEMENTAL_DEVASTATION1, isEnha && level >= 12 && level < 15 ? 1 : 0);
+            RefreshAura(126125, isElem && level >= 37 ? 1 : 0);
+            RefreshAura(126124, isElem && level >= 36 && level < 37 ? 1 : 0);
+            RefreshAura(126123, isElem && level >= 35 && level < 36 ? 1 : 0);
             RefreshAura(ELEMENTAL_FOCUS, isElem && level >= 20 ? 1 : 0);
             RefreshAura(ELEMENTAL_OATH, !IAmFree() && isElem && level >= 40 ? 1 : 0);
             //RefreshAura(STORM_EARTH_AND_FIRE, isElem && level >= 45 ? 1 : 0);

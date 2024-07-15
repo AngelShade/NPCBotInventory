@@ -26,20 +26,24 @@
 
 enum ShamanSpells
 {
-    SPELL_SHAMAN_ANGEREDEARTH   = 36213,
-    SPELL_SHAMAN_FIREBLAST      = 57984,
-    SPELL_SHAMAN_FIRENOVA       = 12470,
-    SPELL_SHAMAN_FIRESHIELD     = 13377
+    SPELL_SHAMAN_ANGEREDEARTH = 36213,
+    SPELL_SHAMAN_FIREBLAST = 57984,
+    SPELL_SHAMAN_FIRENOVA = 12470,
+    SPELL_SHAMAN_FIRESHIELD = 13377,
+    SPELL_SHAMAN_CHAIN_LIGHTNING = 10605,
+    SPELL_SHAMAN_LIGHTNING_BOLT = 15207
 };
 
 enum ShamanEvents
 {
     // Earth Elemental
-    EVENT_SHAMAN_ANGEREDEARTH   = 1,
+    EVENT_SHAMAN_ANGEREDEARTH = 1,
     // Fire Elemental
-    EVENT_SHAMAN_FIRENOVA       = 1,
-    EVENT_SHAMAN_FIRESHIELD     = 2,
-    EVENT_SHAMAN_FIREBLAST      = 3
+    EVENT_SHAMAN_FIRENOVA = 1,
+    EVENT_SHAMAN_FIREBLAST = 2,
+    EVENT_SHAMAN_FIRESHIELD = 3,
+    // Nature Elemental
+    EVENT_SHAMAN_CAST_SPELL = 1
 };
 
 struct npc_pet_shaman_earth_elemental : public ScriptedAI
@@ -143,8 +147,64 @@ private:
     bool _initAttack;
 };
 
+struct npc_pet_shaman_nature_elemental : public ScriptedAI
+{
+    npc_pet_shaman_nature_elemental(Creature* creature) : ScriptedAI(creature), _initAttack(true), _nextSpell(true) { }
+
+    void JustEngagedWith(Unit*) override
+    {
+        _events.Reset();
+        _events.ScheduleEvent(EVENT_SHAMAN_CAST_SPELL, 3000);
+    }
+
+    void InitializeAI() override { }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (_initAttack)
+        {
+            if (!me->IsInCombat())
+                if (Player* owner = me->GetCharmerOrOwnerPlayerOrPlayerItself())
+                    if (Unit* target = owner->GetSelectedUnit())
+                        if (me->CanCreatureAttack(target))
+                            AttackStart(target);
+            _initAttack = false;
+        }
+
+        if (!UpdateVictim())
+            return;
+
+        _events.Update(diff);
+
+        if (_events.ExecuteEvent() == EVENT_SHAMAN_CAST_SPELL)
+        {
+            if (!me->HasUnitState(UNIT_STATE_CASTING))
+            {
+                if (_nextSpell)
+                {
+                    DoCastVictim(SPELL_SHAMAN_CHAIN_LIGHTNING);
+                }
+                else
+                {
+                    DoCastVictim(SPELL_SHAMAN_LIGHTNING_BOLT);
+                }
+                _nextSpell = !_nextSpell;
+            }
+            _events.ScheduleEvent(EVENT_SHAMAN_CAST_SPELL, urand(5000, 7000));
+        }
+
+        DoMeleeAttackIfReady();
+    }
+
+private:
+    EventMap _events;
+    bool _initAttack;
+    bool _nextSpell;
+};
+
 void AddSC_shaman_pet_scripts()
 {
     RegisterCreatureAI(npc_pet_shaman_earth_elemental);
     RegisterCreatureAI(npc_pet_shaman_fire_elemental);
+    RegisterCreatureAI(npc_pet_shaman_nature_elemental);
 }

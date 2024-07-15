@@ -124,11 +124,11 @@ std::unordered_map<uint8, AuthHandler> AuthSession::InitHandlers()
 {
     std::unordered_map<uint8, AuthHandler> handlers;
 
-    handlers[AUTH_LOGON_CHALLENGE] =        { STATUS_CHALLENGE,         AUTH_LOGON_CHALLENGE_INITIAL_SIZE, &AuthSession::HandleLogonChallenge };
-    handlers[AUTH_LOGON_PROOF] =            { STATUS_LOGON_PROOF,       sizeof(AUTH_LOGON_PROOF_C),        &AuthSession::HandleLogonProof };
-    handlers[AUTH_RECONNECT_CHALLENGE] =    { STATUS_CHALLENGE,         AUTH_LOGON_CHALLENGE_INITIAL_SIZE, &AuthSession::HandleReconnectChallenge };
-    handlers[AUTH_RECONNECT_PROOF] =        { STATUS_RECONNECT_PROOF,   sizeof(AUTH_RECONNECT_PROOF_C),    &AuthSession::HandleReconnectProof };
-    handlers[REALM_LIST] =                  { STATUS_AUTHED,            REALM_LIST_PACKET_SIZE,            &AuthSession::HandleRealmList };
+    handlers[AUTH_LOGON_CHALLENGE] = { STATUS_CHALLENGE,         AUTH_LOGON_CHALLENGE_INITIAL_SIZE, &AuthSession::HandleLogonChallenge };
+    handlers[AUTH_LOGON_PROOF] = { STATUS_LOGON_PROOF,       sizeof(AUTH_LOGON_PROOF_C),        &AuthSession::HandleLogonProof };
+    handlers[AUTH_RECONNECT_CHALLENGE] = { STATUS_CHALLENGE,         AUTH_LOGON_CHALLENGE_INITIAL_SIZE, &AuthSession::HandleReconnectChallenge };
+    handlers[AUTH_RECONNECT_PROOF] = { STATUS_RECONNECT_PROOF,   sizeof(AUTH_RECONNECT_PROOF_C),    &AuthSession::HandleReconnectProof };
+    handlers[REALM_LIST] = { STATUS_AUTHED,            REALM_LIST_PACKET_SIZE,            &AuthSession::HandleRealmList };
 
     return handlers;
 }
@@ -411,61 +411,47 @@ void AuthSession::LogonChallengeCallback(PreparedQueryResult result)
         fields[13].Get<Binary, Acore::Crypto::SRP6::VERIFIER_LENGTH>());
 
     // Fill the response packet with the result
-    //Dinkle
     if (AuthHelper::IsAcceptedClientBuild(_build))
     {
-        if (_srp6.has_value()) // Check if _srp6 contains a value
-        {
-            pkt << uint8(WOW_SUCCESS);
+        pkt << uint8(WOW_SUCCESS);
 
-            pkt.append(_srp6->B);
+        pkt.append(_srp6->B);
+        pkt << uint8(1);
+        pkt.append(_srp6->g);
+        pkt << uint8(32);
+        pkt.append(_srp6->N);
+        pkt.append(_srp6->s);
+        pkt.append(VersionChallenge.data(), VersionChallenge.size());
+        pkt << uint8(securityFlags);            // security flags (0x0...0x04)
+
+        if (securityFlags & 0x01)               // PIN input
+        {
+            pkt << uint32(0);
+            pkt << uint64(0) << uint64(0);      // 16 bytes hash?
+        }
+
+        if (securityFlags & 0x02)               // Matrix input
+        {
+            pkt << uint8(0);
+            pkt << uint8(0);
+            pkt << uint8(0);
+            pkt << uint8(0);
+            pkt << uint64(0);
+        }
+
+        if (securityFlags & 0x04)               // Security token input
             pkt << uint8(1);
-            pkt.append(_srp6->g);
-            pkt << uint8(32);
-            pkt.append(_srp6->N);
-            pkt.append(_srp6->s);
-            pkt.append(VersionChallenge.data(), VersionChallenge.size());
-            pkt << uint8(securityFlags);            // security flags (0x0...0x04)
 
-            if (securityFlags & 0x01)               // PIN input
-            {
-                pkt << uint32(0);
-                pkt << uint64(0) << uint64(0);      // 16 bytes hash?
-            }
+        LOG_DEBUG("server.authserver", "'{}:{}' [AuthChallenge] account {} is using '{}' locale ({})",
+            ipAddress, port, _accountInfo.Login, _localizationName, GetLocaleByName(_localizationName));
 
-            if (securityFlags & 0x02)               // Matrix input
-            {
-                pkt << uint8(0);
-                pkt << uint8(0);
-                pkt << uint8(0);
-                pkt << uint8(0);
-                pkt << uint64(0);
-            }
-
-            if (securityFlags & 0x04)               // Security token input
-                pkt << uint8(1);
-
-            LOG_DEBUG("server.authserver", "'{}:{}' [AuthChallenge] account {} is using '{}' locale ({})",
-                ipAddress, port, _accountInfo.Login, _localizationName, GetLocaleByName(_localizationName));
-
-            _status = STATUS_LOGON_PROOF;
-        }
-        else
-        {
-            // Handle the case where _srp6 does not contain a value
-            LOG_ERROR("server.authserver", "'{}:{}' [AuthChallenge] _srp6 does not contain a value for account {}",
-                ipAddress, port, _accountInfo.Login);
-            pkt << uint8(WOW_FAIL_UNKNOWN_ACCOUNT); // Or another appropriate error code
-            // Consider logging this event or handling it according to your application's needs
-        }
+        _status = STATUS_LOGON_PROOF;
     }
     else
-    {
         pkt << uint8(WOW_FAIL_VERSION_INVALID);
-    }
 
     SendPacket(pkt);
-}//end Dinkle
+}
 
 // Logon Proof command handler
 bool AuthSession::HandleLogonProof()
@@ -521,7 +507,7 @@ bool AuthSession::HandleLogonProof()
             packet << uint8(WOW_FAIL_VERSION_INVALID);
             SendPacket(packet);
             return true;
-        }       
+        }
 
         LOG_DEBUG("server.authserver", "'{}:{}' User '{}' successfully authenticated", GetRemoteIpAddress().to_string(), GetRemotePort(), _accountInfo.Login);
 

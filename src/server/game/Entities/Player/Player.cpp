@@ -354,7 +354,6 @@ Player::Player(WorldSession* session): Unit(true), m_mover(this)
     m_homebindX = 0;
     m_homebindY = 0;
     m_homebindZ = 0;
-    m_homebindO = 0;
 
     m_contestedPvPTimer = 0;
 
@@ -1628,7 +1627,7 @@ bool Player::TeleportToEntryPoint()
 
     if (loc.m_mapId == MAPID_INVALID)
     {
-        return TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, m_homebindO);
+        return TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
     }
 
     return TeleportTo(loc);
@@ -5019,7 +5018,7 @@ void Player::RepopAtGraveyard()
         }
     }
     else if (GetPositionZ() < GetMap()->GetMinHeight(GetPositionX(), GetPositionY()))
-        TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, m_homebindO);
+        TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation());
 
     RemovePlayerFlag(PLAYER_FLAGS_IS_OUT_OF_BOUNDS);
 }
@@ -10947,7 +10946,7 @@ void Player::InitDataForForm(bool reapplyMods)
 {
     ShapeshiftForm form = GetShapeshiftForm();
 
-    SpellShapeshiftEntry const* ssEntry = sSpellShapeshiftStore.LookupEntry(form);
+    SpellShapeshiftFormEntry const* ssEntry = sSpellShapeshiftFormStore.LookupEntry(form);
     if (ssEntry && ssEntry->attackSpeed)
     {
         SetAttackTime(BASE_ATTACK, ssEntry->attackSpeed);
@@ -11701,7 +11700,7 @@ void Player::SetEntryPoint()
     }
 
     if (m_entryPointData.joinPos.m_mapId == MAPID_INVALID)
-        m_entryPointData.joinPos = WorldLocation(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, m_homebindO);
+        m_entryPointData.joinPos = WorldLocation(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, 0.0f);
 }
 
 void Player::LeaveBattleground(Battleground* bg)

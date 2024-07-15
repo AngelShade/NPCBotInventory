@@ -65,6 +65,10 @@ enum ShamanSpells
     SPELL_SHAMAN_STORMSTRIKE                    = 17364,
     SPELL_SHAMAN_LAVA_LASH                      = 60103,
     SPELL_SHAMAN_LIGHTNING_BOLT_OVERLOAD        = 45284,
+    SPELL_SHAMAN_LAVA_BURST_R1                  = 100131,
+    SPELL_SHAMAN_LAVA_BURST_R2                  = 100132,
+    SPELL_SHAMAN_LAVA_BURST_R3                  = 51505,
+    SPELL_SHAMAN_LAVA_BURST_R4                  = 60043,
 };
 
 enum ShamanSpellIcons
@@ -853,27 +857,73 @@ class spell_sha_flame_shock : public AuraScript
 
     bool Validate(SpellInfo const* /*spell*/) override
     {
-        return ValidateSpellInfo({ SPELL_SHAMAN_LAVA_FLOWS_R1, SPELL_SHAMAN_LAVA_FLOWS_TRIGGERED_R1 });
+        return ValidateSpellInfo({ SPELL_SHAMAN_LAVA_FLOWS_R1, SPELL_SHAMAN_LAVA_FLOWS_TRIGGERED_R1, 821121, 844471, 822231, SPELL_SHAMAN_LAVA_BURST_R1, SPELL_SHAMAN_LAVA_BURST_R2, SPELL_SHAMAN_LAVA_BURST_R3, SPELL_SHAMAN_LAVA_BURST_R4 });
     }
 
     void HandleDispel(DispelInfo* /*dispelInfo*/)
     {
         if (Unit* caster = GetCaster())
+        {
             // Lava Flows
             if (AuraEffect const* aurEff = caster->GetDummyAuraEffect(SPELLFAMILY_SHAMAN, SHAMAN_ICON_ID_SHAMAN_LAVA_FLOW, EFFECT_0))
             {
                 if (SpellInfo const* firstRankSpellInfo = sSpellMgr->GetSpellInfo(SPELL_SHAMAN_LAVA_FLOWS_R1))
+                {
                     if (!aurEff->GetSpellInfo()->IsRankOf(firstRankSpellInfo))
                         return;
 
-                uint8 rank = aurEff->GetSpellInfo()->GetRank();
-                caster->CastSpell(caster, sSpellMgr->GetSpellWithRank(SPELL_SHAMAN_LAVA_FLOWS_TRIGGERED_R1, rank), true);
+                    uint8 rank = aurEff->GetSpellInfo()->GetRank();
+                    caster->CastSpell(caster, sSpellMgr->GetSpellWithRank(SPELL_SHAMAN_LAVA_FLOWS_TRIGGERED_R1, rank), true);
+                }
             }
+        }
+    }
+
+    void AfterRemove(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
+    {
+        AuraRemoveMode removeMode = GetTargetApplication()->GetRemoveMode();
+        if (removeMode != AURA_REMOVE_BY_ENEMY_SPELL && removeMode != AURA_REMOVE_BY_EXPIRE)
+            return;
+
+        if (Unit* caster = GetCaster())
+        {
+            // Relic
+            if (caster->HasAura(821121))
+            {
+                if (Unit* target = GetTarget())
+                {
+                    caster->CastSpell(target, 844471, true, nullptr, aurEff);
+                }
+            }
+        }
+    }
+
+    void OnPeriodic(AuraEffect const* aurEff)
+    {
+        PreventDefaultAction();
+        if (Unit* caster = GetCaster())
+        {
+            if (caster->HasAura(822231) && caster->ToPlayer())
+            {
+                if (roll_chance_i(10)) // 10% chance
+                {
+                    Player* playerCaster = caster->ToPlayer();
+                    // Cata Lava Surge, basically
+                    playerCaster->RemoveSpellCooldown(SPELL_SHAMAN_LAVA_BURST_R1, true);
+                    playerCaster->RemoveSpellCooldown(SPELL_SHAMAN_LAVA_BURST_R2, true);
+                    playerCaster->RemoveSpellCooldown(SPELL_SHAMAN_LAVA_BURST_R3, true);
+                    playerCaster->RemoveSpellCooldown(SPELL_SHAMAN_LAVA_BURST_R4, true);
+
+                }
+            }
+        }
     }
 
     void Register() override
     {
         AfterDispel += AuraDispelFn(spell_sha_flame_shock::HandleDispel);
+        AfterEffectRemove += AuraEffectRemoveFn(spell_sha_flame_shock::AfterRemove, EFFECT_1, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL);
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_sha_flame_shock::OnPeriodic, EFFECT_1, SPELL_AURA_PERIODIC_DAMAGE);
     }
 };
 

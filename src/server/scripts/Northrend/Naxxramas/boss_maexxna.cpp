@@ -17,6 +17,7 @@
 
 #include "CreatureScript.h"
 #include "PassiveAI.h"
+#include "Player.h"
 #include "ScriptedCreature.h"
 #include "naxxramas.h"
 
