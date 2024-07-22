@@ -1011,9 +1011,8 @@ public:
             }
             //EXECUTE
             if (IsSpellReady(EXECUTE_1, diff) && can_do_normal && HasRole(BOT_ROLE_DPS) && !IsTank() && Rand() < 110 &&
-                (isFury || !me->GetMap()->IsRaid()) &&
                 (mytar->HasAuraState(AURA_STATE_HEALTHLESS_20_PERCENT) ||
-                me->GetAuraEffect(SPELL_AURA_ABILITY_IGNORE_AURASTATE, SPELLFAMILY_WARRIOR, 0x0, 0x2000000, 0x0)) &&
+                    me->GetAuraEffect(SPELL_AURA_ABILITY_IGNORE_AURASTATE, SPELLFAMILY_WARRIOR, 0x0, 0x2000000, 0x0)) &&
                 dist < 5 && rage >= rcost(EXECUTE_1) &&
                 (_inStance(5) || (stancetimer <= diff && stanceChange(diff, 5))))
             {

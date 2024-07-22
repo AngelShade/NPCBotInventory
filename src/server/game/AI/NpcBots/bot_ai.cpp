@@ -19167,7 +19167,7 @@ WanderNode const* bot_ai::GetNextBGTravelNode() const
             }
             if (links.size() > 1 && _travel_node_last && !curNode->HasFlag(BotWPFlags::BOTWP_FLAG_CAN_BACKTRACK_FROM))
                 links.remove(_travel_node_last);
-
+            
             //if (links.size() == 1)
             //    return links.front();
 

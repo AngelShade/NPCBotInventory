@@ -26,10 +26,10 @@
 #include "CommandScript.h"
 #include "GameTime.h"
 #include "GitRevision.h"
+#include "Log.h"
 #include "ModuleMgr.h"
 #include "MotdMgr.h"
 #include "MySQLThreading.h"
-#include "Player.h"
 #include "Realm.h"
 #include "StringConvert.h"
 #include "UpdateTime.h"
@@ -243,13 +243,13 @@ public:
         handler->PSendSysMessage("WorldDatabase queue size: %zu", WorldDatabase.QueueSize());
 
         if (Acore::Module::GetEnableModulesList().empty())
-            handler->SendSysMessage("No modules enabled");
+            handler->SendSysMessage("No modules are enabled");
         else
-            handler->SendSysMessage("> List enable modules:");
+            handler->SendSysMessage("List of enabled modules:");
 
         for (auto const& modName : Acore::Module::GetEnableModulesList())
         {
-            handler->SendSysMessage(Acore::StringFormatFmt("- {}", modName));
+            handler->SendSysMessage(Acore::StringFormatFmt("|- {}", modName));
         }
 
         return true;

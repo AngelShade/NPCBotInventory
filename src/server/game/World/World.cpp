@@ -1305,6 +1305,8 @@ void World::LoadConfigSettings(bool reload)
 
     _int_configs[CONFIG_DAILY_RBG_MIN_LEVEL_AP_REWARD] = sConfigMgr->GetOption<uint32>("DailyRBGArenaPoints.MinLevel", 60);
 
+    _bool_configs[CONFIG_MUNCHING_BLIZZLIKE] = sConfigMgr->GetOption<bool>("MunchingBlizzlike.Enabled", true);
+
     _int_configs[CONFIG_AUCTION_HOUSE_SEARCH_TIMEOUT] = sConfigMgr->GetOption<uint32>("AuctionHouse.SearchTimeout", 1000);
 
     ///- Read the "Data" directory from the config file

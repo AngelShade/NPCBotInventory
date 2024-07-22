@@ -815,37 +815,62 @@ class spell_sha_fire_nova : public SpellScript
         return true;
     }
 
-    SpellCastResult CheckFireTotem()
-    {
-        // fire totem
-        Unit* caster = GetCaster();
-        if (Creature* totem = caster->GetMap()->GetCreature(caster->m_SummonSlot[1]))
-        {
-            if (!caster->IsWithinDistInMap(totem, caster->GetSpellMaxRangeForTarget(totem, GetSpellInfo())))
-                return SPELL_FAILED_OUT_OF_RANGE;
-            return SPELL_CAST_OK;
-        }
-        else
-        {
-            SetCustomCastResultMessage(SPELL_CUSTOM_ERROR_MUST_HAVE_FIRE_TOTEM);
-            return SPELL_FAILED_CUSTOM_ERROR;
-        }
-    }
-
     void HandleDummy(SpellEffIndex /*effIndex*/)
     {
         Unit* caster = GetCaster();
-        if (Creature* totem = caster->GetMap()->GetCreature(caster->m_SummonSlot[1]))
+        if (!caster)
+            return;
+
+        uint8 rank = GetSpellInfo()->GetRank();
+        uint32 fireNovaSpellId = sSpellMgr->GetSpellWithRank(SPELL_SHAMAN_FIRE_NOVA_TRIGGERED_R1, rank);
+
+        // Find all units within 60 yd
+        std::list<Unit*> targets;
+        float range = 60.0f;
+
+        Acore::AnyUnitInObjectRangeCheck fsu_check(caster, range);
+        Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(caster, targets, fsu_check);
+
+        CellCoord pair(Acore::ComputeCellCoord(caster->GetPositionX(), caster->GetPositionY()));
+        Cell cell(pair);
+        cell.SetNoCreate();
+
+        cell.VisitAllObjects(caster, searcher, range);
+
+        bool hasFlameShockTarget = false;
+
+        // Check if any unit is affected by Flame Shock
+        for (Unit* target : targets)
         {
-            uint8 rank = GetSpellInfo()->GetRank();
-            if (totem->IsTotem())
-                caster->CastSpell(totem, sSpellMgr->GetSpellWithRank(SPELL_SHAMAN_FIRE_NOVA_TRIGGERED_R1, rank), true);
+            if (target->HasAuraTypeWithFamilyFlags(SPELL_AURA_PERIODIC_DAMAGE, 11, 0x10000000))
+            {
+                hasFlameShockTarget = true;
+                break;
+            }
+        }
+
+        // If no unit is affected by Flame Shock, send error message and prevent casting
+        if (!hasFlameShockTarget)
+        {
+            if (Player* player = caster->ToPlayer())
+            {
+                ChatHandler(player->GetSession()).SendSysMessage("No target in range is affected by Flame Shock.");
+            }
+            return;
+        }
+
+        // Apply Fire Nova to all units affected by Flame Shock (using spell family flags)
+        for (Unit* target : targets)
+        {
+            if (target->HasAuraTypeWithFamilyFlags(SPELL_AURA_PERIODIC_DAMAGE, 11, 0x10000000))
+            {
+                caster->CastSpell(target, fireNovaSpellId, true);
+            }
         }
     }
 
     void Register() override
     {
-        OnCheckCast += SpellCheckCastFn(spell_sha_fire_nova::CheckFireTotem);
         OnEffectHitTarget += SpellEffectFn(spell_sha_fire_nova::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };
