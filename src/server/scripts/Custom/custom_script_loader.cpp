@@ -90,6 +90,8 @@ void AddSC_DKQuestBugFix();
 void AddSC_spell_prismatic_guard();
 void AddSC_cathedral_of_light();
 void AddSC_seraphic_burn();
+void AddSC_spell_custom_chaos_bolt();
+void AddSC_boss_faith();
 
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
@@ -173,6 +175,8 @@ void AddCustomScripts()
     AddSC_spell_prismatic_guard();
     AddSC_cathedral_of_light();
     AddSC_seraphic_burn();
+    AddSC_spell_custom_chaos_bolt();
+    AddSC_boss_faith();
 
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();
