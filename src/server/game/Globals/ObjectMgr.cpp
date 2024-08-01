@@ -8741,6 +8741,83 @@ SkillRangeType GetSkillRangeType(SkillRaceClassInfoEntry const* rcEntry)
     return SKILL_RANGE_LEVEL;
 }
 
+void ObjectMgr::LoadNPCOutfits()
+{
+    uint32 oldMSTime = getMSTime();
+
+    _npcOutfitStore.clear(); // for reload case (test only)
+
+    QueryResult result = WorldDatabase.Query("SELECT entry, race, gender, skin, face, hair, haircolor, facialhair, "
+        "head, shoulders, body, chest, waist, legs, feet, wrists, hands, back, tabard FROM creature_outfits");
+
+    if (!result)
+    {
+        LOG_ERROR("server.loading", ">> Loaded 0 creature outfits. DB table `creature_outfits` is empty!");
+        return;
+    }
+
+    uint32 count = 0;
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 i = 0;
+        uint32 entry = fields[i++].Get<uint32>();
+
+        if (!GetCreatureTemplate(entry))
+        {
+            LOG_ERROR("server.loading", ">> NPC Creature entry {} in `creature_outfits`, but not in `creature_template`!", entry);
+            continue;
+        }
+
+        CreatureOutfit co; // const, shouldn't be changed after saving
+        co.race = fields[i++].Get<uint8>();
+        ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(co.race);
+        if (!rEntry)
+        {
+            LOG_ERROR("server.loading", ">> NPC Creature entry {} in `creature_outfits` has incorrect race ({}).", entry, uint32(co.race));
+            continue;
+        }
+        co.gender = fields[i++].Get<uint8>();
+
+        // Set correct displayId
+        _npcOutfitTemplateStore[entry].unit_flags2 |= UNIT_FLAG2_MIRROR_IMAGE; // Needed so client requests mirror packet
+        _npcOutfitTemplateStore[entry].Models.clear();
+        switch (co.gender)
+        {
+        case GENDER_FEMALE:
+            _npcOutfitTemplateStore[entry].Models.emplace_back(rEntry->model_f, 1.0f, 1.0f);
+            break;
+        case GENDER_MALE:
+            _npcOutfitTemplateStore[entry].Models.emplace_back(rEntry->model_m, 1.0f, 1.0f);
+            break;
+        default:
+            LOG_ERROR("server.loading", ">> NPC Creature entry {} in `creature_outfits` has invalid gender {}", entry, uint32(co.gender));
+            _npcOutfitTemplateStore[entry].Models.emplace_back(rEntry->model_m, 1.0f, 1.0f);
+            continue;
+        }
+
+        co.skin = fields[i++].Get<uint8>();
+        co.face = fields[i++].Get<uint8>();
+        co.hair = fields[i++].Get<uint8>();
+        co.haircolor = fields[i++].Get<uint8>();
+        co.facialhair = fields[i++].Get<uint8>();
+        for (uint32 j = 0; j != MAX_CREATURE_OUTFIT_DISPLAYS; ++j)
+        {
+            co.outfit[j] = fields[i + j].Get<uint32>();
+            LOG_INFO("server.loading", "Outfit slot {} for entry {}: displayId {}", j, entry, co.outfit[j]);
+        }
+
+        //LOG_INFO("server.loading", "Loaded outfit for entry {}: race {}, gender {}, skin {}, face {}, hair {}, haircolor {}, facialhair {}", entry, co.race, co.gender, co.skin, co.face, co.hair, co.haircolor, co.facialhair);
+
+        _npcOutfitStore[entry] = co;
+        ++count;
+    } while (result->NextRow());
+
+    LOG_INFO("server.loading", ">> Loaded {} NPC outfits in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
 void ObjectMgr::LoadCreatureOutfits()
 {
     uint32 oldMSTime = getMSTime();

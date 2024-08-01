@@ -92,6 +92,9 @@ void AddSC_cathedral_of_light();
 void AddSC_seraphic_burn();
 void AddSC_spell_custom_chaos_bolt();
 void AddSC_boss_faith();
+void AddSC_spell_legendary_spells();
+void AddSC_fancy_city_npcs();
+void AddSC_npc_miss_danna();
 
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
@@ -177,6 +180,9 @@ void AddCustomScripts()
     AddSC_seraphic_burn();
     AddSC_spell_custom_chaos_bolt();
     AddSC_boss_faith();
+    AddSC_spell_legendary_spells();
+    AddSC_fancy_city_npcs();
+    AddSC_npc_miss_danna();
 
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();

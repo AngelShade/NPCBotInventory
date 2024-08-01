@@ -84,6 +84,7 @@ public:
 
         void Reset() override
         {
+            RemoveAuraFromMobs(819753);
             DespawnCreatures(810316);
             me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
             me->SetImmuneToPC(true);
@@ -140,6 +141,7 @@ public:
         void JustEngagedWith(Unit* /*who*/) override
         {
             // ### TODO Check combat timing ###
+            ApplyAuraToMobs(819753);
             events.ScheduleEvent(EVENT_FIRENOVA,    7s);
             events.ScheduleEvent(EVENT_FLAMEBUFFET, 5s);
             events.ScheduleEvent(EVENT_PYROBLAST,  14s);
@@ -150,6 +152,7 @@ public:
 
         void JustDied(Unit* /*killer*/) override
         {
+            RemoveAuraFromMobs(819753);
             DespawnCreatures(810316);
             // Activate all the runes
             UpdateRunes(GO_STATE_READY);
@@ -229,6 +232,38 @@ public:
                 rune6->SetGoState(state);
             if (GameObject* rune7 = me->GetMap()->GetGameObject(instance->GetGuidData(GO_EMBERSEER_RUNE_7)))
                 rune7->SetGoState(state);
+        }
+
+        void ApplyAuraToMobs(uint32 spellId)
+        {
+            std::list<Creature*> creatures;
+            GetCreatureListWithEntryInGrid(creatures, me, 9819, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 10899, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 9818, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 9817, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 10083, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 10317, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 9096, 60.0f);
+            for (Creature* creature : creatures)
+            {
+                creature->AddAura(spellId, creature);
+            }
+        }
+
+        void RemoveAuraFromMobs(uint32 spellId)
+        {
+            std::list<Creature*> creatures;
+            GetCreatureListWithEntryInGrid(creatures, me, 9819, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 10899, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 9818, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 9817, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 10083, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 10317, 60.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 9096, 60.0f);
+            for (Creature* creature : creatures)
+            {
+                creature->RemoveAurasDueToSpell(spellId);
+            }
         }
 
         void UpdateAI(uint32 diff) override

@@ -1902,6 +1902,12 @@ void World::SetInitialWorldSettings()
     // Loot tables
     LoadLootTables();
 
+    LOG_INFO("server.loading", "Load NPC Outfits...");
+    sObjectMgr->LoadNPCOutfits();
+
+    LOG_INFO("server.loading", "Load Creature Outfits...");
+    sObjectMgr->LoadCreatureOutfits();
+
     LOG_INFO("server.loading", "Loading Skill Discovery Table...");
     LoadSkillDiscoveryTable();
 

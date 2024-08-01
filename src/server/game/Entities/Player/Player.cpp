@@ -6698,37 +6698,37 @@ void Player::_ApplyItemMods(Item* item, uint8 slot, bool apply)
 }
 
 // Define floats for stat modifiers
-float Player::intellectMultiplier60 = 0.0f;
-float Player::intellectMultiplier70 = 0.0f;
-float Player::intellectMultiplier80 = 0.0f;
+float Player::intellectMultiplier60 = 1.0f;
+float Player::intellectMultiplier70 = 1.0f;
+float Player::intellectMultiplier80 = 1.0f;
 
-float Player::spiritMultiplier60 = 0.0f;
-float Player::spiritMultiplier70 = 0.0f;
-float Player::spiritMultiplier80 = 0.0f;
+float Player::spiritMultiplier60 = 1.0f;
+float Player::spiritMultiplier70 = 1.0f;
+float Player::spiritMultiplier80 = 1.0f;
 
-float Player::staminaMultiplier60 = 0.0f;
-float Player::staminaMultiplier70 = 0.0f;
-float Player::staminaMultiplier80 = 0.0f;
+float Player::staminaMultiplier60 = 1.0f;
+float Player::staminaMultiplier70 = 1.0f;
+float Player::staminaMultiplier80 = 1.0f;
 
-float Player::defenseRatingMultiplier60 = 0.0f;
-float Player::defenseRatingMultiplier70 = 0.0f;
-float Player::defenseRatingMultiplier80 = 0.0f;
+float Player::defenseRatingMultiplier60 = 1.0f;
+float Player::defenseRatingMultiplier70 = 1.0f;
+float Player::defenseRatingMultiplier80 = 1.0f;
 
-float Player::hitRatingMultiplier60 = 0.0f;
-float Player::hitRatingMultiplier70 = 0.0f;
-float Player::hitRatingMultiplier80 = 0.0f;
+float Player::hitRatingMultiplier60 = 1.0f;
+float Player::hitRatingMultiplier70 = 1.0f;
+float Player::hitRatingMultiplier80 = 1.0f;
 
-float Player::critRatingMultiplier60 = 0.0f;
-float Player::critRatingMultiplier70 = 0.0f;
-float Player::critRatingMultiplier80 = 0.0f;
+float Player::critRatingMultiplier60 = 1.0f;
+float Player::critRatingMultiplier70 = 1.0f;
+float Player::critRatingMultiplier80 = 1.0f;
 
-float Player::hasteRatingMultiplier60 = 0.0f;
-float Player::hasteRatingMultiplier70 = 0.0f;
-float Player::hasteRatingMultiplier80 = 0.0f;
+float Player::hasteRatingMultiplier60 = 1.0f;
+float Player::hasteRatingMultiplier70 = 1.0f;
+float Player::hasteRatingMultiplier80 = 1.0f;
 
-float Player::expertiseRatingMultiplier60 = 0.0f;
-float Player::expertiseRatingMultiplier70 = 0.0f;
-float Player::expertiseRatingMultiplier80 = 0.0f;
+float Player::expertiseRatingMultiplier60 = 1.0f;
+float Player::expertiseRatingMultiplier70 = 1.0f;
+float Player::expertiseRatingMultiplier80 = 1.0f;
 
 float Player::manaBonusIntellectMultiplier = 1.0f;
 
@@ -6927,12 +6927,23 @@ void Player::_ApplyItemBonuses(ItemTemplate const* proto, uint8 slot, bool apply
                 {
                     scalingFactor = Player::spiritMultiplier80;
                 }
+
+                //LOG_ERROR("player.stats", "Applying spirit multiplier: {} to base value: {}", scalingFactor, val);
+
                 // Apply the scaling factor to the spirit value.
                 float scaledSpirit = float(val) * scalingFactor;
+
+                // Ensure that small values are properly scaled
+                if (scaledSpirit < 1.0f)
+                {
+                    scaledSpirit = ceil(scaledSpirit);
+                }
 
                 // Apply the modified spirit.
                 HandleStatModifier(UNIT_MOD_STAT_SPIRIT, BASE_VALUE, scaledSpirit, apply);
                 ApplyStatBuffMod(STAT_SPIRIT, scaledSpirit, apply);
+
+                //LOG_ERROR("player.stats", "Final spirit value after applying multiplier: {}", scaledSpirit);
             }
             break;
             // Dinkle: Config Options for stamina gains multiplier

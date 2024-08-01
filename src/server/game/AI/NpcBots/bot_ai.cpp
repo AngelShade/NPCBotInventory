@@ -17851,7 +17851,7 @@ bool bot_ai::GlobalUpdate(uint32 diff)
 
     if (_updateTimerEx2 <= diff)
     {
-        _updateTimerEx2 = urand(2000, 4000);
+        _updateTimerEx2 = urand(4000, 6000);
 
         if (BotMgr::HideBotSpawns() && IAmFree() && !IsWanderer())
         {
@@ -17860,9 +17860,9 @@ bool bot_ai::GlobalUpdate(uint32 diff)
             if (mymap)
             {
                 std::list<Player*> plist;
-                Acore::AllWorldObjectsInExactRange pcheck(me, 15.0f, false);
+                Acore::AllWorldObjectsInExactRange pcheck(me, 5.0f, false);
                 Acore::PlayerListSearcher<decltype(pcheck)> searcher(me, plist, pcheck);
-                Cell::VisitWorldObjects(me, searcher, 20.f);
+                Cell::VisitWorldObjects(me, searcher, 10.f);
                 _canAppearInWorld = std::any_of(plist.cbegin(), plist.cend(), [](Player const* pl) { return pl->GetSession()->GetSecurity() > SEC_PLAYER; });
                 if (!CanAppearInWorld() && !IsDuringTeleport())
                     BotMgr::TeleportBot(me, mymap, me, true);

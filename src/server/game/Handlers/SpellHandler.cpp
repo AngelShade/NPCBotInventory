@@ -674,19 +674,90 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
     ObjectGuid guid;
     recvData >> guid;
 
+    LOG_INFO("network", "Received mirror image data request for GUID {}", guid.ToString());
+
     // Get unit for which data is needed by client
     Unit* unit = ObjectAccessor::GetUnit(*_player, guid);
     if (!unit)
-        return;
-
-    //npcbot
-    if (unit->GetTypeId() == TYPEID_UNIT)
     {
-        CreatureOutfitContainer const& outfits = sObjectMgr->GetCreatureOutfitMap();
+        LOG_ERROR("network", "Unit not found for GUID {}", guid.ToString());
+        return;
+    }
+
+    LOG_INFO("network", "Unit found for GUID {}", guid.ToString());
+
+    // Check if unit is NPC bot
+    if (unit->GetTypeId() == TYPEID_UNIT && unit->ToCreature()->IsNPCBot())
+    {
+        Creature const* bot = unit->ToCreature();
+        NpcBotAppearanceData const* appearData = BotDataMgr::SelectNpcBotAppearance(bot->GetEntry());
+
+        WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
+        data << guid;
+        data << uint32(bot->GetDisplayId());                                       // displayId
+        data << uint8(bot->GetRace());                                             // race
+        data << uint8(appearData ? appearData->gender : (uint8)bot->GetGender());  // gender
+        data << uint8(bot->GetBotAI()->GetPlayerClass());                          // class
+        data << uint8(appearData ? appearData->skin : 0);                          // skin
+        data << uint8(appearData ? appearData->face : 0);                          // face
+        data << uint8(appearData ? appearData->hair : 0);                          // hair
+        data << uint8(appearData ? appearData->haircolor : 0);                     // haircolor
+        data << uint8(appearData ? appearData->features : 0);                      // facialhair
+        data << uint32(0);                                                         // guildId
+
+        static uint8 const botItemSlots[MAX_CREATURE_OUTFIT_DISPLAYS] =
+        {
+            BOT_SLOT_HEAD,
+            BOT_SLOT_SHOULDERS,
+            BOT_SLOT_BODY,
+            BOT_SLOT_CHEST,
+            BOT_SLOT_WAIST,
+            BOT_SLOT_LEGS,
+            BOT_SLOT_FEET,
+            BOT_SLOT_WRIST,
+            BOT_SLOT_HANDS,
+            BOT_SLOT_BACK,
+            0 // tabard
+        };
+
+        // Display items in visible slots
+        for (uint8 i = 0; i != MAX_CREATURE_OUTFIT_DISPLAYS; ++i)
+        {
+            uint8 slot = botItemSlots[i];
+            if (slot == 0 ||
+                (slot == BOT_SLOT_HEAD && BotMgr::ShowEquippedHelm() == false) ||
+                (slot == BOT_SLOT_BACK && BotMgr::ShowEquippedCloak() == false))
+            {
+                data << uint32(0);
+                continue;
+            }
+
+            uint32 display_id = bot->GetBotAI()->GetEquipDisplayId(slot);
+            if (display_id)
+                data << uint32(display_id);
+            else
+            {
+                if (slot == BOT_SLOT_CHEST)
+                    data << uint32(CHEST_HALISCAN);
+                else if (slot == BOT_SLOT_LEGS)
+                    data << uint32(LEGS_HALISCAN);
+                else
+                    data << uint32(0);
+            }
+        }
+
+        SendPacket(&data);
+        return;
+    }
+    else if (unit->GetTypeId() == TYPEID_UNIT) // Handle regular NPCs
+    {
+        CreatureOutfitContainer const& outfits = sObjectMgr->GetNPCOutfitMap();
         CreatureOutfitContainer::const_iterator it = outfits.find(unit->GetEntry());
         if (it != outfits.end())
         {
-            WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
+            LOG_INFO("network", "Outfit found for creature entry {}", unit->GetEntry());
+
+            WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68); // Corrected to use SMSG_MIRRORIMAGE_DATA
             data << guid;
             data << uint32(unit->GetNativeDisplayId()); // displayId
             data << uint8(it->second.race);             // race
@@ -699,96 +770,38 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
             data << uint8(it->second.facialhair);       // facialhair
             data << uint32(0);                          // guildId
 
-            // item displays
+            LOG_INFO("network", "Prepared data for NPC outfit packet");
+
             for (uint8 i = 0; i != MAX_CREATURE_OUTFIT_DISPLAYS; ++i)
+            {
                 data << uint32(it->second.outfit[i]);
-
-            SendPacket(&data);
-            return;
-        }
-
-        //npcbot minion without a record in outfits table
-        //OR
-        //npcbot's mirror image
-        Creature const* bot = unit->ToCreature();
-        if (!bot->IsNPCBot() && unit->HasAuraType(SPELL_AURA_CLONE_CASTER))
-            if (Unit const* creator = unit->GetAuraEffectsByType(SPELL_AURA_CLONE_CASTER).front()->GetCaster())
-                if (creator->IsNPCBot())
-                    bot = creator->ToCreature();
-
-        if (bot->IsNPCBot())
-        {
-            NpcBotAppearanceData const* appearData = BotDataMgr::SelectNpcBotAppearance(bot->GetEntry());
-
-            WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
-            data << guid;
-            data << uint32(bot->GetDisplayId());                                       // displayId
-            data << uint8(bot->GetRace());                                             // race
-            data << uint8(appearData ? appearData->gender : (uint8)bot->GetGender());  // gender
-            data << uint8(bot->GetBotAI()->GetPlayerClass());                          // class
-            data << uint8(appearData ? appearData->skin : 0);                          // skin
-            data << uint8(appearData ? appearData->face : 0);                          // face
-            data << uint8(appearData ? appearData->hair : 0);                          // hair
-            data << uint8(appearData ? appearData->haircolor : 0);                     // haircolor
-            data << uint8(appearData ? appearData->features : 0);                      // facialhair
-            data << uint32(0);                                                         // guildId
-
-            static uint8 const botItemSlots[MAX_CREATURE_OUTFIT_DISPLAYS] =
-            {
-                BOT_SLOT_HEAD,
-                BOT_SLOT_SHOULDERS,
-                BOT_SLOT_BODY,
-                BOT_SLOT_CHEST,
-                BOT_SLOT_WAIST,
-                BOT_SLOT_LEGS,
-                BOT_SLOT_FEET,
-                BOT_SLOT_WRIST,
-                BOT_SLOT_HANDS,
-                BOT_SLOT_BACK,
-                0//tabard
-            };
-
-            // Display items in visible slots
-            for (uint8 i = 0; i != MAX_CREATURE_OUTFIT_DISPLAYS; ++i)
-            {
-                uint8 slot = botItemSlots[i];
-                //Items not displayed on bot: tabard, head, back
-                if (slot == 0 ||
-                    (slot == BOT_SLOT_HEAD && BotMgr::ShowEquippedHelm() == false) ||
-                    (slot == BOT_SLOT_BACK && BotMgr::ShowEquippedCloak() == false))
-                {
-                    data << uint32(0);
-                    continue;
-                }
-
-                uint32 display_id = bot->GetBotAI()->GetEquipDisplayId(slot);
-                if (display_id)
-                    data << uint32(display_id);
-                else
-                {
-                    //don't allow to go naked
-                    if (slot == BOT_SLOT_CHEST)
-                        data << uint32(CHEST_HALISCAN);
-                    else if (slot == BOT_SLOT_LEGS)
-                        data << uint32(LEGS_HALISCAN);
-                    else
-                        data << uint32(0);
-                }
+                LOG_INFO("network", "Outfit slot {}: displayId {}", i, it->second.outfit[i]);
             }
 
             SendPacket(&data);
+            LOG_INFO("network", "Sent NPC outfit data for GUID {}", guid.ToString());
             return;
         }
+        else
+        {
+            LOG_ERROR("network", "No outfit found for creature entry {}", unit->GetEntry());
+        }
     }
-    //end npcbot
 
     if (!unit->HasAuraType(SPELL_AURA_CLONE_CASTER))
+    {
+        LOG_ERROR("network", "Unit does not have SPELL_AURA_CLONE_CASTER for GUID {}", guid.ToString());
         return;
+    }
 
-    // Get creator of the unit (SPELL_AURA_CLONE_CASTER does not stack)
     Unit* creator = unit->GetAuraEffectsByType(SPELL_AURA_CLONE_CASTER).front()->GetCaster();
     if (!creator)
+    {
+        LOG_ERROR("network", "Creator not found for SPELL_AURA_CLONE_CASTER for GUID {}", guid.ToString());
         return;
+    }
+
+    LOG_INFO("network", "Creator found for SPELL_AURA_CLONE_CASTER: GUID {}", creator->GetGUID().ToString());
 
     WorldPacket data(SMSG_MIRRORIMAGE_DATA, 68);
     data << guid;
@@ -807,6 +820,8 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
         data << uint8(player->GetByteValue(PLAYER_BYTES_2, 0)); // facialhair
         data << uint32(player->GetGuildId());                   // unk
 
+        LOG_INFO("network", "Player data: race {}, gender {}, class {}", player->getRace(), player->getGender(), player->getClass());
+
         static EquipmentSlots const itemSlots[] =
         {
             EQUIPMENT_SLOT_HEAD,
@@ -823,7 +838,6 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
             EQUIPMENT_SLOT_END
         };
 
-        // Display items in visible slots
         for (EquipmentSlots const* itr = &itemSlots[0]; *itr != EQUIPMENT_SLOT_END; ++itr)
         {
             if (*itr == EQUIPMENT_SLOT_HEAD && player->HasPlayerFlag(PLAYER_FLAGS_HIDE_HELM))
@@ -837,14 +851,16 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
                 sScriptMgr->OnGlobalMirrorImageDisplayItem(item, displayInfoId);
 
                 data << uint32(displayInfoId);
+                LOG_INFO("network", "Item slot {}: displayId {}", *itr, displayInfoId);
             }
             else
+            {
                 data << uint32(0);
+            }
         }
     }
     else
     {
-        // Skip player data for creatures
         data << uint8(0);
         data << uint32(0);
         data << uint32(0);
@@ -862,6 +878,7 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPacket& recvData)
     }
 
     SendPacket(&data);
+    LOG_INFO("network", "Sent mirror image data for GUID {}", guid.ToString());
 }
 
 void WorldSession::HandleUpdateProjectilePosition(WorldPacket& recvPacket)

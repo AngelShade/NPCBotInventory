@@ -2092,9 +2092,9 @@ bool Aura::CanStackWith(Aura const* existingAura, bool remove) const
     // check spell group stack rules
     // xinef: this assures us that both spells are in same group!
     //npcbots: do not check stack rules for npcbots
-    if (!(sameCaster && GetOwner()->IsNPCBotOrPet()))
+    //if (!(sameCaster && GetOwner()->IsNPCBotOrPet()))
     //end npcbot
-    {
+    //{
     SpellGroupStackFlags stackFlags = sSpellMgr->CheckSpellGroupStackRules(m_spellInfo, existingSpellInfo, remove, IsArea());
     if (stackFlags)
     {
@@ -2137,7 +2137,7 @@ bool Aura::CanStackWith(Aura const* existingAura, bool remove) const
         return !(stackFlags & SPELL_GROUP_STACK_FLAG_NEVER_STACK);
     }
     //npcbot
-    }
+    //}
     //end npcbot
 
     if (m_spellInfo->SpellFamilyName != existingSpellInfo->SpellFamilyName)

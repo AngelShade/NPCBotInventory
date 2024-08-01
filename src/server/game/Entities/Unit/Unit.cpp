@@ -10601,7 +10601,6 @@ void Unit::SetFaction(uint32 faction)
         ToCreature()->UpdateMoveInLineOfSightState();
 }
 
-// function based on function Unit::UnitReaction from 13850 client
 ReputationRank Unit::GetReactionTo(Unit const* target, bool checkOriginalFaction /*= false*/) const
 {
     // always friendly to self
@@ -10614,48 +10613,33 @@ ReputationRank Unit::GetReactionTo(Unit const* target, bool checkOriginalFaction
 
     Player const* selfPlayerOwner = GetAffectingPlayer();
     Player const* targetPlayerOwner = target->GetAffectingPlayer();
-    //Dinkle
-    // Check forced reputation to support SPELL_AURA_FORCE_REACTION
+
+    // check forced reputation to support SPELL_AURA_FORCE_REACTION
     if (selfPlayerOwner)
     {
-        FactionTemplateEntry const* targetFactionTemplateEntry = target->GetFactionTemplateEntry();
-        if (targetFactionTemplateEntry) // Ensure faction template entry is valid
+        if (FactionTemplateEntry const* targetFactionTemplateEntry = target->GetFactionTemplateEntry())
         {
             if (ReputationRank const* repRank = selfPlayerOwner->GetReputationMgr().GetForcedRankIfAny(targetFactionTemplateEntry))
-            {
-                if (repRank) // Ensure the reputation rank pointer is valid
-                    return *repRank;
-            }
+                return *repRank;
         }
     }
     else if (targetPlayerOwner)
     {
-        FactionTemplateEntry const* selfFactionTemplateEntry = GetFactionTemplateEntry();
-        if (selfFactionTemplateEntry) // Ensure faction template entry is valid
+        if (FactionTemplateEntry const* selfFactionTemplateEntry = GetFactionTemplateEntry())
         {
             if (ReputationRank const* repRank = targetPlayerOwner->GetReputationMgr().GetForcedRankIfAny(selfFactionTemplateEntry))
-            {
-                if (repRank) // Ensure the reputation rank pointer is valid
-                    return *repRank;
-            }
+                return *repRank;
         }
     }
-    //endDinkle
 
     //npcbot
-    /*
-    if (HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
-    {
-        if (target->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
-        {
-    */
     if (HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) || IsNPCBotOrPet())
     {
         if (target->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) || target->IsNPCBotOrPet())
         {
             if (IsInRaidWith(target))
                 return REP_FRIENDLY;
-            //end npcbot
+
             if (selfPlayerOwner && targetPlayerOwner)
             {
                 // always friendly to other unit controlled by player, or to the player himself
@@ -10666,11 +10650,9 @@ ReputationRank Unit::GetReactionTo(Unit const* target, bool checkOriginalFaction
                 if (selfPlayerOwner->duel && selfPlayerOwner->duel->Opponent == targetPlayerOwner && selfPlayerOwner->duel->State == DUEL_STATE_IN_PROGRESS)
                     return REP_HOSTILE;
 
-                // same group - checks dependant only on our faction - skip FFA_PVP for example
+                // same group - checks dependent only on our faction - skip FFA_PVP for example
                 if (selfPlayerOwner->IsInRaidWith(targetPlayerOwner))
                     return REP_FRIENDLY; // return true to allow config option AllowTwoSide.Interaction.Group to work
-                // however client seems to allow mixed group parties, because in 13850 client it works like:
-                // return GetFactionReactionTo(GetFactionTemplateEntry(), target);
             }
 
             // check FFA_PVP
@@ -10683,6 +10665,7 @@ ReputationRank Unit::GetReactionTo(Unit const* target, bool checkOriginalFaction
                 {
                     if (ReputationRank const* repRank = selfPlayerOwner->GetReputationMgr().GetForcedRankIfAny(targetFactionTemplateEntry))
                         return *repRank;
+
                     if (!selfPlayerOwner->HasUnitFlag2(UNIT_FLAG2_IGNORE_REPUTATION))
                     {
                         if (FactionEntry const* targetFactionEntry = sFactionStore.LookupEntry(targetFactionTemplateEntry->faction))
@@ -10741,10 +10724,9 @@ ReputationRank Unit::GetReactionTo(Unit const* target, bool checkOriginalFaction
         factionTemplateEntry = GetFactionTemplateEntry();
     }
 
-    // do checks dependant only on our faction
+    // do checks dependent only on our faction
     return GetFactionReactionTo(factionTemplateEntry, target);
 }
-
 
 ReputationRank Unit::GetFactionReactionTo(FactionTemplateEntry const* factionTemplateEntry, Unit const* target) const
 {

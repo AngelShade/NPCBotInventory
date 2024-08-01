@@ -4180,6 +4180,13 @@ public:
     bool CanPlayerFly(Player* player)
     {
         uint32 map = GetVirtualMapForMapAndZone(player->GetMapId(), player->GetZoneId());
+
+        // Dinkle's easy fix for restricting flight on certain maps.
+        if (map == 2454)
+        {
+            return false;
+        }
+
         if (map == 530 || (map == 571 && player->HasSpell(SPELL_COLD_WEATHER_FLYING)))
         {
             AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetAreaId());
@@ -4190,6 +4197,7 @@ public:
         }
         return false;
     }
+
 
     uint32 DetermineMountSpell(Player* player, bool canFly)
     {

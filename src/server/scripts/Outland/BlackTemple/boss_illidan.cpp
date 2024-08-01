@@ -20,176 +20,180 @@
 #include "ScriptedEscortAI.h"
 #include "SpellScriptLoader.h"
 #include "black_temple.h"
+#include "Player.h"
+#include "ScriptedGossip.h"
+#include "SpellAuraEffects.h"
+#include "SpellScript.h"
 
 enum Says
 {
-    SAY_ILLIDAN_MINION                  = 0,
-    SAY_ILLIDAN_KILL                    = 1,
-    SAY_ILLIDAN_TAKEOFF                 = 2,
-    SAY_ILLIDAN_SUMMONFLAMES            = 3,
-    SAY_ILLIDAN_EYE_BLAST               = 4,
-    SAY_ILLIDAN_MORPH                   = 5,
-    SAY_ILLIDAN_ENRAGE                  = 6,
-    SAY_ILLIDAN_TAUNT                   = 7,
-    SAY_ILLIDAN_AKAMA1                  = 8,
-    SAY_ILLIDAN_AKAMA2                  = 9,
-    SAY_ILLIDAN_AKAMA3                  = 10,
-    SAY_ILLIDAN_MAIEV1                  = 11,
-    SAY_ILLIDAN_MAIEV2                  = 12,
-    SAY_ILLIDAN_MAIEV3                  = 13,
-    SAY_ILLIDAN_FRENZY                  = 14,
+    SAY_ILLIDAN_MINION = 0,
+    SAY_ILLIDAN_KILL = 1,
+    SAY_ILLIDAN_TAKEOFF = 2,
+    SAY_ILLIDAN_SUMMONFLAMES = 3,
+    SAY_ILLIDAN_EYE_BLAST = 4,
+    SAY_ILLIDAN_MORPH = 5,
+    SAY_ILLIDAN_ENRAGE = 6,
+    SAY_ILLIDAN_TAUNT = 7,
+    SAY_ILLIDAN_AKAMA1 = 8,
+    SAY_ILLIDAN_AKAMA2 = 9,
+    SAY_ILLIDAN_AKAMA3 = 10,
+    SAY_ILLIDAN_MAIEV1 = 11,
+    SAY_ILLIDAN_MAIEV2 = 12,
+    SAY_ILLIDAN_MAIEV3 = 13,
+    SAY_ILLIDAN_FRENZY = 14,
 
-    SAY_UDALO                           = 0,
-    SAY_OLUM                            = 0,
-    SAY_AKAMA_DOORS                     = 0,
-    SAY_AKAMA_FAIL                      = 1,
-    SAY_AKAMA_BEWARE                    = 2,
-    SAY_AKAMA_LEAVE                     = 3,
-    SAY_AKAMA_ILLIDAN1                  = 4,
-    SAY_AKAMA_ILLIDAN2                  = 5,
-    SAY_AKAMA_ILLIDAN3                  = 6,
-    SAY_AKAMA_COUNCIL_1                 = 9,
-    SAY_AKAMA_COUNCIL_2                 = 10,
+    SAY_UDALO = 0,
+    SAY_OLUM = 0,
+    SAY_AKAMA_DOORS = 0,
+    SAY_AKAMA_FAIL = 1,
+    SAY_AKAMA_BEWARE = 2,
+    SAY_AKAMA_LEAVE = 3,
+    SAY_AKAMA_ILLIDAN1 = 4,
+    SAY_AKAMA_ILLIDAN2 = 5,
+    SAY_AKAMA_ILLIDAN3 = 6,
+    SAY_AKAMA_COUNCIL_1 = 9,
+    SAY_AKAMA_COUNCIL_2 = 10,
 
-    SAY_MAIEV_SHADOWSONG_TAUNT          = 0,
-    SAY_MAIEV_SHADOWSONG_ILLIDAN1       = 1,
-    SAY_MAIEV_SHADOWSONG_ILLIDAN2       = 2,
-    SAY_MAIEV_SHADOWSONG_ILLIDAN3       = 3,
-    SAY_MAIEV_SHADOWSONG_ILLIDAN4       = 4,
-    SAY_MAIEV_SHADOWSONG_ILLIDAN5       = 5,
+    SAY_MAIEV_SHADOWSONG_TAUNT = 0,
+    SAY_MAIEV_SHADOWSONG_ILLIDAN1 = 1,
+    SAY_MAIEV_SHADOWSONG_ILLIDAN2 = 2,
+    SAY_MAIEV_SHADOWSONG_ILLIDAN3 = 3,
+    SAY_MAIEV_SHADOWSONG_ILLIDAN4 = 4,
+    SAY_MAIEV_SHADOWSONG_ILLIDAN5 = 5,
 
-    EMOTE_AZZINOTH_GAZE                 = 0
+    EMOTE_AZZINOTH_GAZE = 0
 };
 
 enum Spells
 {
     // Phase 1
-    SPELL_DUAL_WIELD                    = 42459,
-    SPELL_BERSERK                       = 45078,
-    SPELL_FLAME_CRASH                   = 40832,
-    SPELL_DRAW_SOUL                     = 40904,
-    SPELL_DRAW_SOUL_HEAL                = 40903,
-    SPELL_PARASITIC_SHADOWFIEND         = 41917,
+    SPELL_DUAL_WIELD = 42459,
+    SPELL_BERSERK = 45078,
+    SPELL_FLAME_CRASH = 40832,
+    SPELL_DRAW_SOUL = 40904,
+    SPELL_DRAW_SOUL_HEAL = 40903,
+    SPELL_PARASITIC_SHADOWFIEND = 41917,
     SPELL_PARASITIC_SHADOWFIEND_TRIGGER = 41914,
     SPELL_SUMMON_PARASITIC_SHADOWFIENDS = 41915,
 
     // Phase 2
-    SPELL_THROW_GLAIVE                  = 39635,
-    SPELL_THROW_GLAIVE2                 = 39849,
-    SPELL_GLAIVE_RETURNS                = 39873,
-    SPELL_SUMMON_GLAIVE                 = 41466,
-    SPELL_FIREBALL                      = 40598,
-    SPELL_DARK_BARRAGE                  = 40585,
-    SPELL_EYE_BLAST                     = 39908,
-    SPELL_UNCAGED_WRATH                 = 39869,
-    SPELL_FLAME_BLAST                   = 40631,
-    SPELL_CHARGE                        = 42003,
+    SPELL_THROW_GLAIVE = 39635,
+    SPELL_THROW_GLAIVE2 = 39849,
+    SPELL_GLAIVE_RETURNS = 39873,
+    SPELL_SUMMON_GLAIVE = 41466,
+    SPELL_FIREBALL = 40598,
+    SPELL_DARK_BARRAGE = 40585,
+    SPELL_EYE_BLAST = 39908,
+    SPELL_UNCAGED_WRATH = 39869,
+    SPELL_FLAME_BLAST = 40631,
+    SPELL_CHARGE = 42003,
 
     // Phase 3
-    SPELL_AGONIZING_FLAMES              = 40932,
-    SPELL_SUMMON_MAIEV                  = 40403,
-    SPELL_SHADOW_PRISON                 = 40647,
-    SPELL_TELEPORT_VISUAL_ONLY          = 41232,
+    SPELL_AGONIZING_FLAMES = 40932,
+    SPELL_SUMMON_MAIEV = 40403,
+    SPELL_SHADOW_PRISON = 40647,
+    SPELL_TELEPORT_VISUAL_ONLY = 41232,
 
     // Phase 4
-    SPELL_DEMON_TRANSFORM_1             = 40511,
-    SPELL_DEMON_TRANSFORM_2             = 40398,
-    SPELL_DEMON_TRANSFORM_3             = 40510,
-    SPELL_DEMON_FORM                    = 40506,
-    SPELL_SHADOW_BLAST                  = 41078,
-    SPELL_FLAME_BURST                   = 41126,
-    SPELL_FLAME_BURST_EFFECT            = 41131,
-    SPELL_SUMMON_SHADOW_DEMON           = 41117,
-    SPELL_CONSUME_SOUL                  = 41080,
-    SPELL_FIND_TARGET                   = 41081,
+    SPELL_DEMON_TRANSFORM_1 = 40511,
+    SPELL_DEMON_TRANSFORM_2 = 40398,
+    SPELL_DEMON_TRANSFORM_3 = 40510,
+    SPELL_DEMON_FORM = 40506,
+    SPELL_SHADOW_BLAST = 41078,
+    SPELL_FLAME_BURST = 41126,
+    SPELL_FLAME_BURST_EFFECT = 41131,
+    SPELL_SUMMON_SHADOW_DEMON = 41117,
+    SPELL_CONSUME_SOUL = 41080,
+    SPELL_FIND_TARGET = 41081,
 
     // Phase 5
-    SPELL_FRENZY                        = 40683,
-    SPELL_TELEPORT_MAIEV                = 41221,
-    SPELL_SHADOW_STRIKE                 = 40685,
-    SPELL_THROW_DAGGER                  = 41152,
-    SPELL_DEATH                         = 41220,
+    SPELL_FRENZY = 40683,
+    SPELL_TELEPORT_MAIEV = 41221,
+    SPELL_SHADOW_STRIKE = 40685,
+    SPELL_THROW_DAGGER = 41152,
+    SPELL_DEATH = 41220,
 
     // Cage
-    SPELL_CAGED_DEBUFF                  = 40695,
-    SPELL_CAGED_SUMMON1                 = 40696,
-    SPELL_CAGED_SUMMON8                 = 40703,
-    SPELL_CAGE_TRAP                     = 40760
+    SPELL_CAGED_DEBUFF = 40695,
+    SPELL_CAGED_SUMMON1 = 40696,
+    SPELL_CAGED_SUMMON8 = 40703,
+    SPELL_CAGE_TRAP = 40760
 };
 
 enum Misc
 {
-    ACTION_ILLIDARI_COUNCIL_DONE    = 0,
-    ACTION_FIGHT_MINIONS            = 1,
-    ACTION_RETURN_BLADE             = 2,
-    ACTION_ILLIDAN_CAGED            = 3,
-    ACTION_ILLIDAN_DEAD             = 4,
-    ACTION_MAIEV_SET_DIST30         = 5,
-    ACTION_MAIEV_SET_DIST0          = 6,
-    ACTION_MAIEV_OUTRO              = 7,
+    ACTION_ILLIDARI_COUNCIL_DONE = 0,
+    ACTION_FIGHT_MINIONS = 1,
+    ACTION_RETURN_BLADE = 2,
+    ACTION_ILLIDAN_CAGED = 3,
+    ACTION_ILLIDAN_DEAD = 4,
+    ACTION_MAIEV_SET_DIST30 = 5,
+    ACTION_MAIEV_SET_DIST0 = 6,
+    ACTION_MAIEV_OUTRO = 7,
 
-    MAX_EYE_BEAM_POS                = 4,
+    MAX_EYE_BEAM_POS = 4,
 
-    POINT_ILLIDAN_HOVER             = 10,
-    POINT_ILLIDAN_MIDDLE            = 11,
+    POINT_ILLIDAN_HOVER = 10,
+    POINT_ILLIDAN_MIDDLE = 11,
 
-    NPC_ILLIDAN_DB_TARGET           = 23070,
-    NPC_MAIEV_SHADOWSONG            = 23197,
+    NPC_ILLIDAN_DB_TARGET = 23070,
+    NPC_MAIEV_SHADOWSONG = 23197,
 
-    GO_CAGE_TRAP                    = 185916,
+    GO_CAGE_TRAP = 185916,
 
-    PATH_AKAMA_ILLIDARI_COUNCIL_1   = 230891
+    PATH_AKAMA_ILLIDARI_COUNCIL_1 = 230891
 };
 
 enum Events
 {
-    EVENT_SPELL_FLAME_CRASH             = 1,
-    EVENT_SPELL_BERSERK                 = 2,
-    EVENT_SPELL_DRAW_SOUL               = 3,
-    EVENT_SPELL_PARASITIC_SHADOWFIEND   = 4,
-    EVENT_SPELL_AGONIZING_FLAMES        = 5,
-    EVENT_SPELL_FRENZY                  = 6,
+    EVENT_SPELL_FLAME_CRASH = 1,
+    EVENT_SPELL_BERSERK = 2,
+    EVENT_SPELL_DRAW_SOUL = 3,
+    EVENT_SPELL_PARASITIC_SHADOWFIEND = 4,
+    EVENT_SPELL_AGONIZING_FLAMES = 5,
+    EVENT_SPELL_FRENZY = 6,
 
-    EVENT_SUMMON_MINIONS                = 20,
-    EVENT_SUMMON_MINIONS2               = 21,
+    EVENT_SUMMON_MINIONS = 20,
+    EVENT_SUMMON_MINIONS2 = 21,
 
-    EVENT_PHASE_2_START                 = 40,
-    EVENT_SPELL_FIREBALL                = 41,
-    EVENT_SPELL_DARK_BARRAGE            = 42,
-    EVENT_START_PHASE_2_END             = 43,
-    EVENT_START_PHASE_2_WEAPON          = 44,
-    EVENT_START_PHASE_3_LAND            = 45,
-    EVENT_PHASE_2_SUMMON1               = 46,
-    EVENT_PHASE_2_SUMMON2               = 47,
-    EVENT_PHASE_2_EYE_BEAM              = 48,
-    EVENT_PHASE_2_EYE_BEAM_START        = 49,
-    EVENT_PHASE_2_CHANGE_POS            = 50,
-    EVENT_PHASE_2_INTERRUPT             = 51,
+    EVENT_PHASE_2_START = 40,
+    EVENT_SPELL_FIREBALL = 41,
+    EVENT_SPELL_DARK_BARRAGE = 42,
+    EVENT_START_PHASE_2_END = 43,
+    EVENT_START_PHASE_2_WEAPON = 44,
+    EVENT_START_PHASE_3_LAND = 45,
+    EVENT_PHASE_2_SUMMON1 = 46,
+    EVENT_PHASE_2_SUMMON2 = 47,
+    EVENT_PHASE_2_EYE_BEAM = 48,
+    EVENT_PHASE_2_EYE_BEAM_START = 49,
+    EVENT_PHASE_2_CHANGE_POS = 50,
+    EVENT_PHASE_2_INTERRUPT = 51,
 
-    EVENT_PHASE_4_START                 = 60,
-    EVENT_PHASE_5_START                 = 61,
-    EVENT_PHASE_5_SCENE1                = 62,
-    EVENT_PHASE_5_SCENE2                = 63,
-    EVENT_PHASE_5_SCENE3                = 64,
-    EVENT_PHASE_5_SCENE4                = 65,
-    EVENT_PHASE_5_SCENE5                = 66,
+    EVENT_PHASE_4_START = 60,
+    EVENT_PHASE_5_START = 61,
+    EVENT_PHASE_5_SCENE1 = 62,
+    EVENT_PHASE_5_SCENE2 = 63,
+    EVENT_PHASE_5_SCENE3 = 64,
+    EVENT_PHASE_5_SCENE4 = 65,
+    EVENT_PHASE_5_SCENE5 = 66,
 
-    EVENT_REMOVE_DEMON_FORM             = 80,
-    EVENT_SPELL_FLAME_BURST             = 81,
-    EVENT_SPELL_SHADOW_BLAST            = 82,
-    EVENT_SPELL_SHADOW_DEMONS           = 83,
-    EVENT_MOVE_MAIEV                    = 84,
-    EVENT_FINISH_TRANSFORM              = 85, // Dummy, counter only
+    EVENT_REMOVE_DEMON_FORM = 80,
+    EVENT_SPELL_FLAME_BURST = 81,
+    EVENT_SPELL_SHADOW_BLAST = 82,
+    EVENT_SPELL_SHADOW_DEMONS = 83,
+    EVENT_MOVE_MAIEV = 84,
+    EVENT_FINISH_TRANSFORM = 85, // Dummy, counter only
 
-    EVENT_OUTRO_DEMON                   = 90,
-    EVENT_OUTRO_1                       = 91,
-    EVENT_OUTRO_2                       = 92,
-    EVENT_OUTRO_3                       = 93,
+    EVENT_OUTRO_DEMON = 90,
+    EVENT_OUTRO_1 = 91,
+    EVENT_OUTRO_2 = 92,
+    EVENT_OUTRO_3 = 93,
 
-    EVENT_KILL_TALK                     = 100,
-    EVENT_SAY_TAUNT                     = 101,
+    EVENT_KILL_TALK = 100,
+    EVENT_SAY_TAUNT = 101,
 
-    GROUP_PHASE_2_ABILITY               = 1
+    GROUP_PHASE_2_ABILITY = 1
 };
 
 const Position eyeBeamPos[MAX_EYE_BEAM_POS * 2] =
@@ -412,62 +416,67 @@ public:
             events2.Update(diff);
             switch (events2.ExecuteEvent())
             {
-                case EVENT_SUMMON_MINIONS2:
-                    if (Creature* akama = instance->GetCreature(DATA_AKAMA_ILLIDAN))
-                        akama->AI()->DoAction(ACTION_FIGHT_MINIONS);
-                    break;
-                case EVENT_PHASE_2_EYE_BEAM_START:
-                    Talk(SAY_ILLIDAN_EYE_BLAST);
-                    if (Creature* trigger = summons.GetCreatureWithEntry(NPC_ILLIDAN_DB_TARGET))
-                        trigger->GetMotionMaster()->MovePoint(0, eyeBeamPos[beamPosId + MAX_EYE_BEAM_POS], false, true);
-                    break;
-                case EVENT_PHASE_2_INTERRUPT:
+            case EVENT_SUMMON_MINIONS2:
+                if (Creature* akama = instance->GetCreature(DATA_AKAMA_ILLIDAN))
+                    akama->AI()->DoAction(ACTION_FIGHT_MINIONS);
+                break;
+            case EVENT_PHASE_2_EYE_BEAM_START:
+                Talk(SAY_ILLIDAN_EYE_BLAST);
+                if (Creature* trigger = summons.GetCreatureWithEntry(NPC_ILLIDAN_DB_TARGET))
+                    trigger->GetMotionMaster()->MovePoint(0, eyeBeamPos[beamPosId + MAX_EYE_BEAM_POS], false, true);
+                break;
+            case EVENT_PHASE_2_INTERRUPT:
+                me->InterruptNonMeleeSpells(false);
+                break;
+            case EVENT_START_PHASE_2_END:
+                summons.RemoveNotExisting();
+                if (!summons.HasEntry(NPC_FLAME_OF_AZZINOTH))
+                {
+                    events.Reset();
+                    events2.Reset();
                     me->InterruptNonMeleeSpells(false);
+                    me->GetMotionMaster()->MovePoint(POINT_ILLIDAN_MIDDLE, 676.02f, 305.45f, 353.6f);
                     break;
-                case EVENT_START_PHASE_2_END:
-                    summons.RemoveNotExisting();
-                    if (!summons.HasEntry(NPC_FLAME_OF_AZZINOTH))
-                    {
-                        events.Reset();
-                        events2.Reset();
-                        me->InterruptNonMeleeSpells(false);
-                        me->GetMotionMaster()->MovePoint(POINT_ILLIDAN_MIDDLE, 676.02f, 305.45f, 353.6f);
-                        break;
-                    }
-                    events2.ScheduleEvent(EVENT_START_PHASE_2_END, 1000);
-                    break;
-                case EVENT_OUTRO_DEMON:
-                    me->CastSpell(me, SPELL_TELEPORT_MAIEV, true);
-                    me->CastSpell(me, SPELL_DEATH, true);
-                    events2.ScheduleEvent(EVENT_OUTRO_1, 1000);
-                    break;
-                case EVENT_OUTRO_1:
-                    if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
-                    {
-                        maiev->SetTarget(me->GetGUID());
-                        maiev->SetFacingToObject(me);
-                        maiev->AI()->DoAction(ACTION_MAIEV_OUTRO);
-                        maiev->AI()->Talk(SAY_MAIEV_SHADOWSONG_ILLIDAN3);
-                    }
+                }
+                events2.ScheduleEvent(EVENT_START_PHASE_2_END, 1000);
+                break;
+            case EVENT_OUTRO_DEMON:
+                me->CastSpell(me, SPELL_TELEPORT_MAIEV, true);
+                me->CastSpell(me, SPELL_DEATH, true);
+                events2.ScheduleEvent(EVENT_OUTRO_1, 1000);
+                break;
+            case EVENT_OUTRO_1:
+                if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
+                {
+                    maiev->SetTarget(me->GetGUID());
+                    maiev->SetFacingToObject(me);
+                    maiev->AI()->DoAction(ACTION_MAIEV_OUTRO);
+                    maiev->AI()->Talk(SAY_MAIEV_SHADOWSONG_ILLIDAN3);
+                }
 
-                    if (Creature* akama = instance->GetCreature(DATA_AKAMA_ILLIDAN))
-                    {
-                        akama->AI()->DoAction(ACTION_ILLIDAN_DEAD);
-                        akama->SetTarget(me->GetGUID());
-                        akama->GetMotionMaster()->MovePoint(0, 695.63f, 306.63f, 354.26f);
-                    }
-                    events2.ScheduleEvent(EVENT_OUTRO_2, 6000);
-                    break;
-                case EVENT_OUTRO_2:
-                    Talk(SAY_ILLIDAN_MAIEV3);
-                    events2.ScheduleEvent(EVENT_OUTRO_3, 17000);
-                    break;
-                    //Dinkle
-                case EVENT_OUTRO_3:
-                    Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true);
-                    Unit::Kill(target, me);
-                    break;
-                    //end Dinkle
+                if (Creature* akama = instance->GetCreature(DATA_AKAMA_ILLIDAN))
+                {
+                    akama->AI()->DoAction(ACTION_ILLIDAN_DEAD);
+                    akama->SetTarget(me->GetGUID());
+                    akama->GetMotionMaster()->MovePoint(0, 695.63f, 306.63f, 354.26f);
+                }
+                events2.ScheduleEvent(EVENT_OUTRO_2, 6000);
+                break;
+            case EVENT_OUTRO_2:
+                Talk(SAY_ILLIDAN_MAIEV3);
+                events2.ScheduleEvent(EVENT_OUTRO_3, 17000);
+                break;
+            case EVENT_OUTRO_3:
+                if (Player* nearestPlayer = me->SelectNearestPlayer(100.0f))
+                {
+                    nearestPlayer->Kill(nearestPlayer, me);
+                }
+                else
+                {
+                    // If no player is found, kill Illidan without a specific killer
+                    Unit::Kill(nullptr, me);
+                }
+                break;
             }
 
             if (!UpdateVictim())
@@ -479,228 +488,234 @@ public:
 
             switch (events.ExecuteEvent())
             {
-                case EVENT_SUMMON_MINIONS:
-                    if (me->HealthBelowPct(90))
-                    {
-                        Talk(SAY_ILLIDAN_MINION);
-                        events2.ScheduleEvent(EVENT_SUMMON_MINIONS2, 10000);
-                        break;
-                    }
-                    events.ScheduleEvent(EVENT_SUMMON_MINIONS, 1000);
+            case EVENT_SUMMON_MINIONS:
+                if (me->HealthBelowPct(90))
+                {
+                    Talk(SAY_ILLIDAN_MINION);
+                    events2.ScheduleEvent(EVENT_SUMMON_MINIONS2, 10000);
                     break;
+                }
+                events.ScheduleEvent(EVENT_SUMMON_MINIONS, 1000);
+                break;
                 // ///////////////////////////
                 // PHASE 1, 3, 5
                 // ///////////////////////////
-                case EVENT_SPELL_BERSERK:
-                    Talk(SAY_ILLIDAN_ENRAGE);
-                    me->CastSpell(me, SPELL_BERSERK, true);
+            case EVENT_SPELL_BERSERK:
+                Talk(SAY_ILLIDAN_ENRAGE);
+                me->CastSpell(me, SPELL_BERSERK, true);
+                break;
+            case EVENT_SPELL_FLAME_CRASH:
+                me->CastSpell(me->GetVictim(), SPELL_FLAME_CRASH, false);
+                events.ScheduleEvent(EVENT_SPELL_FLAME_CRASH, 25000);
+                break;
+            case EVENT_SPELL_DRAW_SOUL:
+                me->CastSpell(me->GetVictim(), SPELL_DRAW_SOUL, false);
+                events.ScheduleEvent(EVENT_SPELL_DRAW_SOUL, 40000);
+                break;
+            case EVENT_SPELL_PARASITIC_SHADOWFIEND:
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
+                    me->CastSpell(target, SPELL_PARASITIC_SHADOWFIEND, false);
+                events.ScheduleEvent(EVENT_SPELL_PARASITIC_SHADOWFIEND, 30000);
+                break;
+            case EVENT_SAY_TAUNT:
+                Talk(SAY_ILLIDAN_TAUNT);
+                events.ScheduleEvent(EVENT_SAY_TAUNT, urand(30000, 60000));
+                break;
+            case EVENT_SPELL_FRENZY:
+                Talk(SAY_ILLIDAN_FRENZY);
+                me->CastSpell(me, SPELL_FRENZY, false);
+                break;
+            case EVENT_SPELL_AGONIZING_FLAMES:
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
+                    me->CastSpell(target, SPELL_AGONIZING_FLAMES, false);
+                break;
+            case EVENT_PHASE_5_START:
+                if (me->HealthBelowPct(30))
+                {
+                    me->CastSpell(me, SPELL_SHADOW_PRISON, true);
+                    me->SendMeleeAttackStop(me->GetVictim());
+                    me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+                    Talk(SAY_ILLIDAN_MAIEV1);
+                    events.Reset();
+                    events.ScheduleEvent(EVENT_PHASE_5_SCENE1, 9000);
+                    events.ScheduleEvent(EVENT_PHASE_5_SCENE2, 18000);
+                    events.ScheduleEvent(EVENT_PHASE_5_SCENE3, 24000);
+                    events.ScheduleEvent(EVENT_PHASE_5_SCENE4, 27000);
+                    events.ScheduleEvent(EVENT_PHASE_5_SCENE5, 30000);
                     break;
-                case EVENT_SPELL_FLAME_CRASH:
-                    me->CastSpell(me->GetVictim(), SPELL_FLAME_CRASH, false);
-                    events.ScheduleEvent(EVENT_SPELL_FLAME_CRASH, 25000);
-                    break;
-                case EVENT_SPELL_DRAW_SOUL:
-                    me->CastSpell(me->GetVictim(), SPELL_DRAW_SOUL, false);
-                    events.ScheduleEvent(EVENT_SPELL_DRAW_SOUL, 40000);
-                    break;
-                case EVENT_SPELL_PARASITIC_SHADOWFIEND:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
-                        me->CastSpell(target, SPELL_PARASITIC_SHADOWFIEND, false);
-                    events.ScheduleEvent(EVENT_SPELL_PARASITIC_SHADOWFIEND, 30000);
-                    break;
-                case EVENT_SAY_TAUNT:
-                    Talk(SAY_ILLIDAN_TAUNT);
-                    events.ScheduleEvent(EVENT_SAY_TAUNT, urand(30000, 60000));
-                    break;
-                case EVENT_SPELL_FRENZY:
-                    Talk(SAY_ILLIDAN_FRENZY);
-                    me->CastSpell(me, SPELL_FRENZY, false);
-                    break;
-                case EVENT_SPELL_AGONIZING_FLAMES:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
-                        me->CastSpell(target, SPELL_AGONIZING_FLAMES, false);
-                    break;
-                case EVENT_PHASE_5_START:
-                    if (me->HealthBelowPct(30))
-                    {
-                        me->CastSpell(me, SPELL_SHADOW_PRISON, true);
-                        me->SendMeleeAttackStop(me->GetVictim());
-                        me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
-                        Talk(SAY_ILLIDAN_MAIEV1);
-                        events.Reset();
-                        events.ScheduleEvent(EVENT_PHASE_5_SCENE1, 9000);
-                        events.ScheduleEvent(EVENT_PHASE_5_SCENE2, 18000);
-                        events.ScheduleEvent(EVENT_PHASE_5_SCENE3, 24000);
-                        events.ScheduleEvent(EVENT_PHASE_5_SCENE4, 27000);
-                        events.ScheduleEvent(EVENT_PHASE_5_SCENE5, 30000);
-                        break;
-                    }
-                    events.ScheduleEvent(EVENT_PHASE_5_START, 1000);
-                    break;
-                case EVENT_PHASE_5_SCENE1:
-                    me->CastSpell(me, SPELL_SUMMON_MAIEV, true);
-                    break;
-                case EVENT_PHASE_5_SCENE2:
-                    Talk(SAY_ILLIDAN_MAIEV2);
-                    break;
-                case EVENT_PHASE_5_SCENE3:
-                    if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
-                        maiev->AI()->Talk(SAY_MAIEV_SHADOWSONG_ILLIDAN2);
-                    break;
-                case EVENT_PHASE_5_SCENE4:
-                    if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
-                        maiev->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
-                    break;
-                case EVENT_PHASE_5_SCENE5:
-                    me->SetTarget(me->GetVictim()->GetGUID());
+                }
+                events.ScheduleEvent(EVENT_PHASE_5_START, 1000);
+                break;
+            case EVENT_PHASE_5_SCENE1:
+                me->CastSpell(me, SPELL_SUMMON_MAIEV, true);
+                break;
+            case EVENT_PHASE_5_SCENE2:
+                Talk(SAY_ILLIDAN_MAIEV2);
+                break;
+            case EVENT_PHASE_5_SCENE3:
+                if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
+                    maiev->AI()->Talk(SAY_MAIEV_SHADOWSONG_ILLIDAN2);
+                break;
+            case EVENT_PHASE_5_SCENE4:
+                if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
+                    maiev->HandleEmoteCommand(EMOTE_ONESHOT_ROAR);
+                break;
+            case EVENT_PHASE_5_SCENE5:
+                //Attempt to fix crash
+                if (Unit* victim = me->GetVictim())
+                {
+                    me->SetTarget(victim->GetGUID());
                     me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
+                    me->GetMotionMaster()->MoveChase(victim);
+
                     if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
                     {
                         maiev->SetReactState(REACT_AGGRESSIVE);
                         maiev->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
                         maiev->AI()->AttackStart(me);
                     }
-                    ScheduleNormalEvents(5);
-                    break;
+                }
+                ScheduleNormalEvents(5);
+                break;
                 // ///////////////////////////
                 // PHASE 2
                 // ///////////////////////////
-                case EVENT_PHASE_2_START:
-                    if (me->HealthBelowPct(65))
-                    {
-                        if (events2.GetNextEventTime(EVENT_SUMMON_MINIONS2) != 0)
-                            events2.RescheduleEvent(EVENT_SUMMON_MINIONS2, 0);
+            case EVENT_PHASE_2_START:
+                if (me->HealthBelowPct(65))
+                {
+                    if (events2.GetNextEventTime(EVENT_SUMMON_MINIONS2) != 0)
+                        events2.RescheduleEvent(EVENT_SUMMON_MINIONS2, 0);
 
-                        Talk(SAY_ILLIDAN_TAKEOFF);
-                        me->SendMeleeAttackStop(me->GetVictim());
-                        me->SetTarget();
-                        me->GetMotionMaster()->Clear();
-                        me->StopMovingOnCurrentPos();
-                        me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-                        me->HandleEmoteCommand(EMOTE_ONESHOT_LIFTOFF);
-                        me->SetDisableGravity(true);
+                    Talk(SAY_ILLIDAN_TAKEOFF);
+                    me->SendMeleeAttackStop(me->GetVictim());
+                    me->SetTarget();
+                    me->GetMotionMaster()->Clear();
+                    me->StopMovingOnCurrentPos();
+                    me->SetUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                    me->HandleEmoteCommand(EMOTE_ONESHOT_LIFTOFF);
+                    me->SetDisableGravity(true);
 
-                        events.Reset();
-                        events.ScheduleEvent(EVENT_PHASE_2_SUMMON1, 6000);
-                        break;
-                    }
-                    events.ScheduleEvent(EVENT_PHASE_2_START, 1000);
+                    events.Reset();
+                    events.ScheduleEvent(EVENT_PHASE_2_SUMMON1, 6000);
                     break;
-                case EVENT_PHASE_2_SUMMON1:
-                    me->LoadEquipment(1, true);
-                    me->GetMotionMaster()->MovePoint(POINT_ILLIDAN_HOVER, 727.875f, 305.365f, 356.0f, false, true);
-                    break;
-                case EVENT_PHASE_2_SUMMON2:
-                    Talk(SAY_ILLIDAN_SUMMONFLAMES);
-                    me->LoadEquipment(0, true);
-                    me->CastSpell(me, SPELL_THROW_GLAIVE, false);
-                    me->CastSpell(me, SPELL_THROW_GLAIVE2, false);
-                    break;
-                case EVENT_PHASE_2_CHANGE_POS:
-                    beamPosId = (beamPosId + 1) % MAX_EYE_BEAM_POS;
-                    events.ScheduleEvent(EVENT_SPELL_FIREBALL, 8000, GROUP_PHASE_2_ABILITY);
-                    events.ScheduleEvent(EVENT_SPELL_DARK_BARRAGE, 18000, GROUP_PHASE_2_ABILITY);
-                    events.ScheduleEvent(EVENT_PHASE_2_EYE_BEAM, urand(25000, 50000), GROUP_PHASE_2_ABILITY);
-                    me->GetMotionMaster()->MovePoint(POINT_ILLIDAN_HOVER, airHoverPos[beamPosId], false, true);
-                    break;
-                case EVENT_PHASE_2_EYE_BEAM:
-                    me->SummonCreature(NPC_ILLIDAN_DB_TARGET, eyeBeamPos[beamPosId], TEMPSUMMON_TIMED_DESPAWN, 15000);
-                    events.CancelEventGroup(GROUP_PHASE_2_ABILITY);
-                    events.ScheduleEvent(EVENT_PHASE_2_CHANGE_POS, 20000);
+                }
+                events.ScheduleEvent(EVENT_PHASE_2_START, 1000);
+                break;
+            case EVENT_PHASE_2_SUMMON1:
+                me->LoadEquipment(1, true);
+                me->GetMotionMaster()->MovePoint(POINT_ILLIDAN_HOVER, 727.875f, 305.365f, 356.0f, false, true);
+                break;
+            case EVENT_PHASE_2_SUMMON2:
+                Talk(SAY_ILLIDAN_SUMMONFLAMES);
+                me->LoadEquipment(0, true);
+                me->CastSpell(me, SPELL_THROW_GLAIVE, false);
+                me->CastSpell(me, SPELL_THROW_GLAIVE2, false);
+                break;
+            case EVENT_PHASE_2_CHANGE_POS:
+                beamPosId = (beamPosId + 1) % MAX_EYE_BEAM_POS;
+                events.ScheduleEvent(EVENT_SPELL_FIREBALL, 8000, GROUP_PHASE_2_ABILITY);
+                events.ScheduleEvent(EVENT_SPELL_DARK_BARRAGE, 18000, GROUP_PHASE_2_ABILITY);
+                events.ScheduleEvent(EVENT_PHASE_2_EYE_BEAM, urand(25000, 50000), GROUP_PHASE_2_ABILITY);
+                me->GetMotionMaster()->MovePoint(POINT_ILLIDAN_HOVER, airHoverPos[beamPosId], false, true);
+                break;
+            case EVENT_PHASE_2_EYE_BEAM:
+                me->SummonCreature(NPC_ILLIDAN_DB_TARGET, eyeBeamPos[beamPosId], TEMPSUMMON_TIMED_DESPAWN, 15000);
+                events.CancelEventGroup(GROUP_PHASE_2_ABILITY);
+                events.ScheduleEvent(EVENT_PHASE_2_CHANGE_POS, 20000);
 
-                    events2.ScheduleEvent(EVENT_PHASE_2_EYE_BEAM_START, 2000);
-                    events2.ScheduleEvent(EVENT_PHASE_2_INTERRUPT, 20000);
-                    break;
-                case EVENT_SPELL_FIREBALL:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
-                        me->CastSpell(target, SPELL_FIREBALL, false);
-                    events.ScheduleEvent(EVENT_SPELL_FIREBALL, 2200, GROUP_PHASE_2_ABILITY);
-                    break;
-                case EVENT_SPELL_DARK_BARRAGE:
-                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
-                        me->CastSpell(target, SPELL_DARK_BARRAGE, false);
-                    events.ScheduleEvent(EVENT_SPELL_DARK_BARRAGE, 30000, GROUP_PHASE_2_ABILITY);
-                    break;
-                case EVENT_START_PHASE_2_WEAPON:
-                    me->LoadEquipment(1, true);
-                    me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
-                    me->SetDisableGravity(false);
-                    break;
-                case EVENT_START_PHASE_3_LAND:
-                    me->GetThreatMgr().ResetAllThreat();
-                    me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
-                    me->SetTarget(me->GetVictim()->GetGUID());
-                    AttackStart(me->GetVictim());
-                    me->GetMotionMaster()->MoveChase(me->GetVictim());
-                    ScheduleNormalEvents(3);
-                    events.ScheduleEvent(EVENT_PHASE_5_START, 1000);
-                    break;
+                events2.ScheduleEvent(EVENT_PHASE_2_EYE_BEAM_START, 2000);
+                events2.ScheduleEvent(EVENT_PHASE_2_INTERRUPT, 20000);
+                break;
+            case EVENT_SPELL_FIREBALL:
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
+                    me->CastSpell(target, SPELL_FIREBALL, false);
+                events.ScheduleEvent(EVENT_SPELL_FIREBALL, 2200, GROUP_PHASE_2_ABILITY);
+                break;
+            case EVENT_SPELL_DARK_BARRAGE:
+                if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, 100.0f, true))
+                    me->CastSpell(target, SPELL_DARK_BARRAGE, false);
+                events.ScheduleEvent(EVENT_SPELL_DARK_BARRAGE, 30000, GROUP_PHASE_2_ABILITY);
+                break;
+            case EVENT_START_PHASE_2_WEAPON:
+                me->LoadEquipment(1, true);
+                me->HandleEmoteCommand(EMOTE_ONESHOT_LAND);
+                me->SetDisableGravity(false);
+                break;
+            case EVENT_START_PHASE_3_LAND:
+                me->GetThreatMgr().ResetAllThreat();
+                me->RemoveUnitFlag(UNIT_FLAG_NOT_SELECTABLE);
+                me->SetTarget(me->GetVictim()->GetGUID());
+                AttackStart(me->GetVictim());
+                me->GetMotionMaster()->MoveChase(me->GetVictim());
+                ScheduleNormalEvents(3);
+                events.ScheduleEvent(EVENT_PHASE_5_START, 1000);
+                break;
                 // ///////////////////////////
                 // PHASE 4
                 // ///////////////////////////
-                case EVENT_PHASE_4_START:
-                    me->CastSpell(me, SPELL_DEMON_TRANSFORM_1, true);
-                    me->GetThreatMgr().ResetAllThreat();
-                    me->GetMotionMaster()->MoveChase(me->GetVictim(), 35.0f);
-                    events.Reset();
-                    events.ScheduleEvent(EVENT_SPELL_SHADOW_BLAST, 11000);
-                    events.ScheduleEvent(EVENT_MOVE_MAIEV, 5000);
+            case EVENT_PHASE_4_START:
+                me->CastSpell(me, SPELL_DEMON_TRANSFORM_1, true);
+                me->GetThreatMgr().ResetAllThreat();
+                me->GetMotionMaster()->MoveChase(me->GetVictim(), 35.0f);
+                events.Reset();
+                events.ScheduleEvent(EVENT_SPELL_SHADOW_BLAST, 11000);
+                events.ScheduleEvent(EVENT_MOVE_MAIEV, 5000);
+                events.ScheduleEvent(EVENT_FINISH_TRANSFORM, 10500);
+                events.ScheduleEvent(EVENT_SPELL_FLAME_BURST, 21000);
+                events.ScheduleEvent(EVENT_SPELL_SHADOW_DEMONS, 36000);
+                events.ScheduleEvent(EVENT_REMOVE_DEMON_FORM, 60000);
+                break;
+            case EVENT_SPELL_SHADOW_BLAST:
+                me->CastSpell(me->GetVictim(), SPELL_SHADOW_BLAST, false);
+                events.ScheduleEvent(EVENT_SPELL_SHADOW_BLAST, 2200);
+                break;
+            case EVENT_SPELL_FLAME_BURST:
+                me->CastSpell(me, SPELL_FLAME_BURST, false);
+                events.ScheduleEvent(EVENT_SPELL_FLAME_BURST, 22000);
+                break;
+            case EVENT_SPELL_SHADOW_DEMONS:
+                me->CastSpell(me, SPELL_SUMMON_SHADOW_DEMON, false);
+                break;
+            case EVENT_REMOVE_DEMON_FORM:
+                me->CastSpell(me, SPELL_DEMON_TRANSFORM_1, true);
+                me->GetThreatMgr().ResetAllThreat();
+                events.Reset();
+                if (summons.HasEntry(NPC_MAIEV_SHADOWSONG))
+                {
+                    ScheduleNormalEvents(5);
+                    events.DelayEvents(11000);
+                    events.ScheduleEvent(EVENT_MOVE_MAIEV, 10000);
                     events.ScheduleEvent(EVENT_FINISH_TRANSFORM, 10500);
-                    events.ScheduleEvent(EVENT_SPELL_FLAME_BURST, 21000);
-                    events.ScheduleEvent(EVENT_SPELL_SHADOW_DEMONS, 36000);
-                    events.ScheduleEvent(EVENT_REMOVE_DEMON_FORM, 60000);
-                    break;
-                case EVENT_SPELL_SHADOW_BLAST:
-                    me->CastSpell(me->GetVictim(), SPELL_SHADOW_BLAST, false);
-                    events.ScheduleEvent(EVENT_SPELL_SHADOW_BLAST, 2200);
-                    break;
-                case EVENT_SPELL_FLAME_BURST:
-                    me->CastSpell(me, SPELL_FLAME_BURST, false);
-                    events.ScheduleEvent(EVENT_SPELL_FLAME_BURST, 22000);
-                    break;
-                case EVENT_SPELL_SHADOW_DEMONS:
-                    me->CastSpell(me, SPELL_SUMMON_SHADOW_DEMON, false);
-                    break;
-                case EVENT_REMOVE_DEMON_FORM:
-                    me->CastSpell(me, SPELL_DEMON_TRANSFORM_1, true);
-                    me->GetThreatMgr().ResetAllThreat();
-                    events.Reset();
-                    if (summons.HasEntry(NPC_MAIEV_SHADOWSONG))
+                }
+                else
+                {
+                    ScheduleNormalEvents(3);
+                    events.ScheduleEvent(EVENT_PHASE_5_START, 1000);
+                    events.DelayEvents(11000);
+                    events.ScheduleEvent(EVENT_FINISH_TRANSFORM, 10500);
+                }
+                break;
+            case EVENT_MOVE_MAIEV:
+                if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
+                {
+                    if (events.GetNextEventTime(EVENT_REMOVE_DEMON_FORM) != 0)
                     {
-                        ScheduleNormalEvents(5);
-                        events.DelayEvents(11000);
-                        events.ScheduleEvent(EVENT_MOVE_MAIEV, 10000);
-                        events.ScheduleEvent(EVENT_FINISH_TRANSFORM, 10500);
+                        maiev->AI()->DoAction(ACTION_MAIEV_SET_DIST30);
+                        if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, -25.0f, true))
+                            maiev->GetMotionMaster()->MoveCharge(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 7.0f, 0);
+                        else
+                            maiev->GetMotionMaster()->MoveCharge(678.04f, 378.34f, 353.0f, 7.0f, 0);
                     }
                     else
                     {
-                        ScheduleNormalEvents(3);
-                        events.ScheduleEvent(EVENT_PHASE_5_START, 1000);
-                        events.DelayEvents(11000);
-                        events.ScheduleEvent(EVENT_FINISH_TRANSFORM, 10500);
+                        maiev->AI()->DoAction(ACTION_MAIEV_SET_DIST0);
+                        maiev->GetMotionMaster()->MoveChase(me, 0.0f);
                     }
-                    break;
-                case EVENT_MOVE_MAIEV:
-                    if (Creature* maiev = summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
-                    {
-                        if (events.GetNextEventTime(EVENT_REMOVE_DEMON_FORM) != 0)
-                        {
-                            maiev->AI()->DoAction(ACTION_MAIEV_SET_DIST30);
-                            if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, -25.0f, true))
-                                maiev->GetMotionMaster()->MoveCharge(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 7.0f, 0);
-                            else
-                                maiev->GetMotionMaster()->MoveCharge(678.04f, 378.34f, 353.0f, 7.0f, 0);
-                        }
-                        else
-                        {
-                            maiev->AI()->DoAction(ACTION_MAIEV_SET_DIST0);
-                            maiev->GetMotionMaster()->MoveChase(me, 0.0f);
-                        }
-                    }
-                    break;
-                case EVENT_FINISH_TRANSFORM:
-                    me->GetMotionMaster()->MoveChase(me->GetVictim(), events.GetNextEventTime(EVENT_REMOVE_DEMON_FORM) != 0 ? 35.0f : 0.0f);
-                    break;
+                }
+                break;
+            case EVENT_FINISH_TRANSFORM:
+                me->GetMotionMaster()->MoveChase(me->GetVictim(), events.GetNextEventTime(EVENT_REMOVE_DEMON_FORM) != 0 ? 35.0f : 0.0f);
+                break;
             }
 
             if (!me->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE))
@@ -721,45 +736,45 @@ public:
 
 enum Akama
 {
-    POINT_DOORS                 = 20,
-    POINT_ILLIDAN               = 32,
-    POINT_FIGHT_MINIONS         = 40,
+    POINT_DOORS = 20,
+    POINT_ILLIDAN = 32,
+    POINT_FIGHT_MINIONS = 40,
 
-    SPELL_AKAMA_DOOR_OPEN       = 41268,
-    SPELL_AKAMA_DOOR_FAIL       = 41271,
-    SPELL_DEATHSWORN_DOOR_OPEN  = 41269,
-    SPELL_HEALING_POTION        = 40535,
-    SPELL_CHAIN_LIGHTNING       = 40536,
+    SPELL_AKAMA_DOOR_OPEN = 41268,
+    SPELL_AKAMA_DOOR_FAIL = 41271,
+    SPELL_DEATHSWORN_DOOR_OPEN = 41269,
+    SPELL_HEALING_POTION = 40535,
+    SPELL_CHAIN_LIGHTNING = 40536,
 
-    NPC_SPIRIT_OF_OLUM          = 23411,
-    NPC_SPIRIT_OF_UDALO         = 23410,
-    NPC_ILLIDARI_ELITE          = 23226,
+    NPC_SPIRIT_OF_OLUM = 23411,
+    NPC_SPIRIT_OF_UDALO = 23410,
+    NPC_ILLIDARI_ELITE = 23226,
 
-    EVENT_AKAMA_SCENE_1         = 1,
-    EVENT_AKAMA_SCENE_2         = 2,
-    EVENT_AKAMA_SCENE_3         = 3,
-    EVENT_AKAMA_SCENE_4         = 4,
-    EVENT_AKAMA_SCENE_5         = 5,
-    EVENT_AKAMA_SCENE_6         = 6,
-    EVENT_AKAMA_SCENE_7         = 7,
-    EVENT_AKAMA_SCENE_8         = 8,
-    EVENT_AKAMA_SCENE_9         = 9,
-    EVENT_AKAMA_SCENE_10        = 10,
-    EVENT_AKAMA_SCENE_11        = 11,
-    EVENT_AKAMA_SCENE_20        = 20,
-    EVENT_AKAMA_SCENE_21        = 21,
-    EVENT_AKAMA_SCENE_22        = 22,
-    EVENT_AKAMA_SCENE_23        = 23,
-    EVENT_AKAMA_SCENE_24        = 24,
-    EVENT_AKAMA_SCENE_25        = 25,
-    EVENT_AKAMA_SCENE_26        = 26,
-    EVENT_AKAMA_SCENE_27        = 27,
-    EVENT_AKAMA_SCENE_28        = 28,
-    EVENT_AKAMA_SCENE_29        = 29,
+    EVENT_AKAMA_SCENE_1 = 1,
+    EVENT_AKAMA_SCENE_2 = 2,
+    EVENT_AKAMA_SCENE_3 = 3,
+    EVENT_AKAMA_SCENE_4 = 4,
+    EVENT_AKAMA_SCENE_5 = 5,
+    EVENT_AKAMA_SCENE_6 = 6,
+    EVENT_AKAMA_SCENE_7 = 7,
+    EVENT_AKAMA_SCENE_8 = 8,
+    EVENT_AKAMA_SCENE_9 = 9,
+    EVENT_AKAMA_SCENE_10 = 10,
+    EVENT_AKAMA_SCENE_11 = 11,
+    EVENT_AKAMA_SCENE_20 = 20,
+    EVENT_AKAMA_SCENE_21 = 21,
+    EVENT_AKAMA_SCENE_22 = 22,
+    EVENT_AKAMA_SCENE_23 = 23,
+    EVENT_AKAMA_SCENE_24 = 24,
+    EVENT_AKAMA_SCENE_25 = 25,
+    EVENT_AKAMA_SCENE_26 = 26,
+    EVENT_AKAMA_SCENE_27 = 27,
+    EVENT_AKAMA_SCENE_28 = 28,
+    EVENT_AKAMA_SCENE_29 = 29,
 
     EVENT_AKAMA_SUMMON_ILLIDARI = 100,
-    EVENT_AKAMA_SPELL_CHAIN     = 101,
-    EVENT_AKAMA_HEALTH          = 102
+    EVENT_AKAMA_SPELL_CHAIN = 101,
+    EVENT_AKAMA_HEALTH = 102
 };
 
 Position AkamaTeleport = { 609.772f, 308.456f, 271.826f, 6.1972566f };
@@ -850,14 +865,14 @@ public:
             if (pathId == PATH_AKAMA_ILLIDARI_COUNCIL_1)
             {
                 ScheduleUniqueTimedEvent(200ms, [&]
-                {
-                    Talk(SAY_AKAMA_COUNCIL_1);
-                }, 1);
+                    {
+                        Talk(SAY_AKAMA_COUNCIL_1);
+                    }, 1);
                 ScheduleUniqueTimedEvent(7800ms, [&]
-                {
-                    Talk(SAY_AKAMA_COUNCIL_2);
-                    me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                }, 2);
+                    {
+                        Talk(SAY_AKAMA_COUNCIL_2);
+                        me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                    }, 2);
             }
         }
 
@@ -913,102 +928,102 @@ public:
             events.Update(diff);
             switch (events.ExecuteEvent())
             {
-                case EVENT_AKAMA_SCENE_1:
-                    me->SetFacingTo(0.0f);
-                    break;
-                case EVENT_AKAMA_SCENE_2:
-                    Talk(SAY_AKAMA_DOORS);
-                    break;
-                case EVENT_AKAMA_SCENE_3:
-                    me->CastSpell(me, SPELL_AKAMA_DOOR_FAIL, false);
-                    break;
-                case EVENT_AKAMA_SCENE_4:
-                    Talk(SAY_AKAMA_FAIL);
-                    break;
-                case EVENT_AKAMA_SCENE_5:
-                    me->SummonCreature(NPC_SPIRIT_OF_UDALO, me->GetPositionX() - 5.0f, me->GetPositionY() + 8.0f, me->GetPositionZ(), 0.0f, TEMPSUMMON_TIMED_DESPAWN, 60000);
-                    me->SummonCreature(NPC_SPIRIT_OF_OLUM, me->GetPositionX() - 5.0f, me->GetPositionY() - 8.0f, me->GetPositionZ(), 0.0f, TEMPSUMMON_TIMED_DESPAWN, 60000);
-                    break;
-                case EVENT_AKAMA_SCENE_6:
-                    if (Creature* udalo = me->FindNearestCreature(NPC_SPIRIT_OF_UDALO, 15.0f))
-                        udalo->AI()->Talk(SAY_UDALO);
-                    break;
-                case EVENT_AKAMA_SCENE_7:
-                    if (Creature* olum = me->FindNearestCreature(NPC_SPIRIT_OF_OLUM, 15.0f))
-                        olum->AI()->Talk(SAY_OLUM);
-                    break;
-                case EVENT_AKAMA_SCENE_8:
-                    me->CastSpell(me, SPELL_AKAMA_DOOR_OPEN, false);
-                    if (Creature* olum = me->FindNearestCreature(NPC_SPIRIT_OF_OLUM, 15.0f))
-                        olum->CastSpell(olum, SPELL_AKAMA_DOOR_OPEN, false);
-                    if (Creature* udalo = me->FindNearestCreature(NPC_SPIRIT_OF_UDALO, 15.0f))
-                        udalo->CastSpell(udalo, SPELL_AKAMA_DOOR_OPEN, false);
-                    break;
-                case EVENT_AKAMA_SCENE_9:
-                    instance->SetBossState(DATA_AKAMA_ILLIDAN, NOT_STARTED);
-                    instance->SetBossState(DATA_AKAMA_ILLIDAN, DONE);
-                    break;
-                case EVENT_AKAMA_SCENE_10:
-                    Talk(SAY_AKAMA_BEWARE);
-                    break;
-                case EVENT_AKAMA_SCENE_11:
-                    SetEscortPaused(false);
-                    break;
-                case EVENT_AKAMA_SCENE_20:
-                    if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
-                        illidan->SetStandState(UNIT_STAND_STATE_STAND);
-                    break;
-                case EVENT_AKAMA_SCENE_21:
-                    me->SetFacingTo(M_PI);
-                    break;
-                case EVENT_AKAMA_SCENE_22:
-                    if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
-                        illidan->AI()->Talk(SAY_ILLIDAN_AKAMA1);
-                    break;
-                case EVENT_AKAMA_SCENE_23:
-                    Talk(SAY_AKAMA_ILLIDAN1);
-                    break;
-                case EVENT_AKAMA_SCENE_24:
-                    if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
-                        illidan->AI()->Talk(SAY_ILLIDAN_AKAMA2);
-                    break;
-                case EVENT_AKAMA_SCENE_25:
-                    Talk(SAY_AKAMA_ILLIDAN2);
-                    break;
-                case EVENT_AKAMA_SCENE_26:
-                    if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
-                        illidan->AI()->Talk(SAY_ILLIDAN_AKAMA3);
-                    break;
-                case EVENT_AKAMA_SCENE_27:
-                    if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
-                        illidan->LoadEquipment(1, true);
-                    break;
-                case EVENT_AKAMA_SCENE_28:
-                    if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
-                        illidan->HandleEmoteCommand(EMOTE_ONESHOT_TALK_NO_SHEATHE);
-                    break;
-                case EVENT_AKAMA_SCENE_29:
-                    if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
-                    {
-                        illidan->SetImmuneToAll(false);
-                        illidan->SetInCombatWithZone();
-                        AttackStart(illidan);
-                    }
-                    break;
-                case EVENT_AKAMA_SUMMON_ILLIDARI:
-                    me->SummonCreature(NPC_ILLIDARI_ELITE, 742.55f, 359.12f, 353.0f, 4.35f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
-                    events.ScheduleEvent(EVENT_AKAMA_SUMMON_ILLIDARI, urand(2000, 6000));
-                    break;
-                case EVENT_AKAMA_SPELL_CHAIN:
-                    if (me->GetVictim())
-                        me->CastSpell(me->GetVictim(), SPELL_CHAIN_LIGHTNING, false);
-                    events.ScheduleEvent(EVENT_AKAMA_SPELL_CHAIN, 20000);
-                    break;
-                case EVENT_AKAMA_HEALTH:
-                    if (me->HealthBelowPct(20))
-                        me->CastSpell(me, SPELL_HEALING_POTION, false);
-                    events.ScheduleEvent(EVENT_AKAMA_HEALTH, 1000);
-                    break;
+            case EVENT_AKAMA_SCENE_1:
+                me->SetFacingTo(0.0f);
+                break;
+            case EVENT_AKAMA_SCENE_2:
+                Talk(SAY_AKAMA_DOORS);
+                break;
+            case EVENT_AKAMA_SCENE_3:
+                me->CastSpell(me, SPELL_AKAMA_DOOR_FAIL, false);
+                break;
+            case EVENT_AKAMA_SCENE_4:
+                Talk(SAY_AKAMA_FAIL);
+                break;
+            case EVENT_AKAMA_SCENE_5:
+                me->SummonCreature(NPC_SPIRIT_OF_UDALO, me->GetPositionX() - 5.0f, me->GetPositionY() + 8.0f, me->GetPositionZ(), 0.0f, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                me->SummonCreature(NPC_SPIRIT_OF_OLUM, me->GetPositionX() - 5.0f, me->GetPositionY() - 8.0f, me->GetPositionZ(), 0.0f, TEMPSUMMON_TIMED_DESPAWN, 60000);
+                break;
+            case EVENT_AKAMA_SCENE_6:
+                if (Creature* udalo = me->FindNearestCreature(NPC_SPIRIT_OF_UDALO, 15.0f))
+                    udalo->AI()->Talk(SAY_UDALO);
+                break;
+            case EVENT_AKAMA_SCENE_7:
+                if (Creature* olum = me->FindNearestCreature(NPC_SPIRIT_OF_OLUM, 15.0f))
+                    olum->AI()->Talk(SAY_OLUM);
+                break;
+            case EVENT_AKAMA_SCENE_8:
+                me->CastSpell(me, SPELL_AKAMA_DOOR_OPEN, false);
+                if (Creature* olum = me->FindNearestCreature(NPC_SPIRIT_OF_OLUM, 15.0f))
+                    olum->CastSpell(olum, SPELL_AKAMA_DOOR_OPEN, false);
+                if (Creature* udalo = me->FindNearestCreature(NPC_SPIRIT_OF_UDALO, 15.0f))
+                    udalo->CastSpell(udalo, SPELL_AKAMA_DOOR_OPEN, false);
+                break;
+            case EVENT_AKAMA_SCENE_9:
+                instance->SetBossState(DATA_AKAMA_ILLIDAN, NOT_STARTED);
+                instance->SetBossState(DATA_AKAMA_ILLIDAN, DONE);
+                break;
+            case EVENT_AKAMA_SCENE_10:
+                Talk(SAY_AKAMA_BEWARE);
+                break;
+            case EVENT_AKAMA_SCENE_11:
+                SetEscortPaused(false);
+                break;
+            case EVENT_AKAMA_SCENE_20:
+                if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
+                    illidan->SetStandState(UNIT_STAND_STATE_STAND);
+                break;
+            case EVENT_AKAMA_SCENE_21:
+                me->SetFacingTo(M_PI);
+                break;
+            case EVENT_AKAMA_SCENE_22:
+                if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
+                    illidan->AI()->Talk(SAY_ILLIDAN_AKAMA1);
+                break;
+            case EVENT_AKAMA_SCENE_23:
+                Talk(SAY_AKAMA_ILLIDAN1);
+                break;
+            case EVENT_AKAMA_SCENE_24:
+                if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
+                    illidan->AI()->Talk(SAY_ILLIDAN_AKAMA2);
+                break;
+            case EVENT_AKAMA_SCENE_25:
+                Talk(SAY_AKAMA_ILLIDAN2);
+                break;
+            case EVENT_AKAMA_SCENE_26:
+                if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
+                    illidan->AI()->Talk(SAY_ILLIDAN_AKAMA3);
+                break;
+            case EVENT_AKAMA_SCENE_27:
+                if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
+                    illidan->LoadEquipment(1, true);
+                break;
+            case EVENT_AKAMA_SCENE_28:
+                if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
+                    illidan->HandleEmoteCommand(EMOTE_ONESHOT_TALK_NO_SHEATHE);
+                break;
+            case EVENT_AKAMA_SCENE_29:
+                if (Creature* illidan = instance->GetCreature(DATA_ILLIDAN_STORMRAGE))
+                {
+                    illidan->SetImmuneToAll(false);
+                    illidan->SetInCombatWithZone();
+                    AttackStart(illidan);
+                }
+                break;
+            case EVENT_AKAMA_SUMMON_ILLIDARI:
+                me->SummonCreature(NPC_ILLIDARI_ELITE, 742.55f, 359.12f, 353.0f, 4.35f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
+                events.ScheduleEvent(EVENT_AKAMA_SUMMON_ILLIDARI, urand(2000, 6000));
+                break;
+            case EVENT_AKAMA_SPELL_CHAIN:
+                if (me->GetVictim())
+                    me->CastSpell(me->GetVictim(), SPELL_CHAIN_LIGHTNING, false);
+                events.ScheduleEvent(EVENT_AKAMA_SPELL_CHAIN, 20000);
+                break;
+            case EVENT_AKAMA_HEALTH:
+                if (me->HealthBelowPct(20))
+                    me->CastSpell(me, SPELL_HEALING_POTION, false);
+                events.ScheduleEvent(EVENT_AKAMA_HEALTH, 1000);
+                break;
             }
 
             DoMeleeAttackIfReady();
@@ -1341,7 +1356,7 @@ class spell_illidan_cage_trap_stun_aura : public AuraScript
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
-        return ValidateSpellInfo({ SPELL_CAGED_DEBUFF, SPELL_CAGED_SUMMON1, SPELL_CAGED_SUMMON1+1, SPELL_CAGED_SUMMON1+2, SPELL_CAGED_SUMMON1+3, SPELL_CAGED_SUMMON1+4, SPELL_CAGED_SUMMON1+5, SPELL_CAGED_SUMMON1+6, SPELL_CAGED_SUMMON8 });
+        return ValidateSpellInfo({ SPELL_CAGED_DEBUFF, SPELL_CAGED_SUMMON1, SPELL_CAGED_SUMMON1 + 1, SPELL_CAGED_SUMMON1 + 2, SPELL_CAGED_SUMMON1 + 3, SPELL_CAGED_SUMMON1 + 4, SPELL_CAGED_SUMMON1 + 5, SPELL_CAGED_SUMMON1 + 6, SPELL_CAGED_SUMMON8 });
     }
 
     void OnPeriodic(AuraEffect const*  /*aurEff*/)
@@ -1377,4 +1392,3 @@ void AddSC_boss_illidan()
     RegisterSpellScript(spell_illidan_cage_trap);
     RegisterSpellScript(spell_illidan_cage_trap_stun_aura);
 }
-

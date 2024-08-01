@@ -925,10 +925,10 @@ class spell_sha_flame_shock : public AuraScript
 
     void OnPeriodic(AuraEffect const* aurEff)
     {
-        PreventDefaultAction();
+        //PreventDefaultAction();
         if (Unit* caster = GetCaster())
         {
-            if (caster->HasAura(822231) && caster->ToPlayer())
+            if (caster->HasAura(822231))
             {
                 if (roll_chance_i(10)) // 10% chance
                 {
