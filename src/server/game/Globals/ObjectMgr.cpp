@@ -8781,8 +8781,13 @@ void ObjectMgr::LoadNPCOutfits()
         }
         co.gender = fields[i++].Get<uint8>();
 
-        // Set correct displayId
-        _npcOutfitTemplateStore[entry].unit_flags2 |= UNIT_FLAG2_MIRROR_IMAGE; // Needed so client requests mirror packet
+        // Set correct displayId and MIRROR_IMAGE flag
+        CreatureTemplate* creatureTemplate = const_cast<CreatureTemplate*>(GetCreatureTemplate(entry));
+        if (creatureTemplate)
+        {
+            creatureTemplate->unit_flags2 |= UNIT_FLAG2_MIRROR_IMAGE; // Needed so client requests mirror packet
+        }
+
         _npcOutfitTemplateStore[entry].Models.clear();
         switch (co.gender)
         {
@@ -8808,8 +8813,6 @@ void ObjectMgr::LoadNPCOutfits()
             co.outfit[j] = fields[i + j].Get<uint32>();
             LOG_INFO("server.loading", "Outfit slot {} for entry {}: displayId {}", j, entry, co.outfit[j]);
         }
-
-        //LOG_INFO("server.loading", "Loaded outfit for entry {}: race {}, gender {}, skin {}, face {}, hair {}, haircolor {}, facialhair {}", entry, co.race, co.gender, co.skin, co.face, co.hair, co.haircolor, co.facialhair);
 
         _npcOutfitStore[entry] = co;
         ++count;
@@ -9509,7 +9512,7 @@ bool ObjectMgr::IsVendorItemValid(uint32 vendor_entry, uint32 item_id, int32 max
     if (maxcount > 0 && incrtime == 0)
     {
         if (player)
-            ChatHandler(player->GetSession()).PSendSysMessage("MaxCount != 0 (%u) but IncrTime == 0", maxcount);
+            ChatHandler(player->GetSession()).PSendSysMessage("MaxCount != 0 ({}) but IncrTime == 0", maxcount);
         else
             LOG_ERROR("sql.sql", "Table `(game_event_)npc_vendor` has `maxcount` ({}) for item {} of vendor (Entry: {}) but `incrtime`=0, ignore", maxcount, item_id, vendor_entry);
         return false;

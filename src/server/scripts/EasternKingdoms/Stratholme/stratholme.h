@@ -21,7 +21,6 @@
 #include "SpellAuras.h"
 #include "../scripts/Custom/Timewalking/10Man.h"
 
-
 #define DataHeader "STR"
 #define StratholmeScriptName "instance_stratholme"
 

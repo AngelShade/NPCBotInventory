@@ -66,11 +66,11 @@ public:
         }).Schedule(25s, 32s, [this](TaskContext context)
         {
             Talk(SAY_SLEEP);
-            DoCastRandomTarget(SPELL_SLEEP, 1, 0.0f, true, false, false);
+            DoCastRandomTarget(SPELL_SLEEP, 1, 0.0f, false, false, false);
             context.Repeat(35s, 48s);
         }).Schedule(30s, 48s, [this](TaskContext context)
         {
-            if (DoCastRandomTarget(SPELL_INFERNO) == SPELL_CAST_OK)
+            if (DoCastRandomTarget(SPELL_INFERNO, 100.f, false, true) == SPELL_CAST_OK)
                 Talk(SAY_INFERNO);
 
             context.Repeat(50s, 55s);

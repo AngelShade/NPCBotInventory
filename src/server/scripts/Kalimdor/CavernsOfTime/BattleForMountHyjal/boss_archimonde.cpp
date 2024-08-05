@@ -145,32 +145,35 @@ struct npc_doomfire_spirit : public ScriptedAI
 {
     npc_doomfire_spirit(Creature* creature) : ScriptedAI(creature){ }
 
-    float const turnConstant = 0.785402f;
-    float fAngle = urand(0, M_PI * 2);
+    float const turnConstant = 0.785402f; // 45 degree turns, verified with sniffs
 
     void Reset() override
     {
-        scheduler.CancelAll();
-        ScheduleTimedEvent(0s, [&] {
-            float nextOrientation = Position::NormalizeOrientation(me->GetOrientation() + irand(-1, 1) * turnConstant);
-            Position pos = GetFirstRandomAngleCollisionPosition(8.f, nextOrientation); // both orientation and distance verified with sniffs
-            me->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), nextOrientation);
-            }, 1600ms);
+        ScheduleUniqueTimedEvent(10ms, [&] {
+            TryTeleportInDirection(1.f, M_PI, 1.f, true); //turns around and teleports 1 unit on spawn, assuming same logic as later teleports applies
 
-        fAngle = urand(0, M_PI * 2);
+            ScheduleTimedEvent(10ms, [&] {
+                float angle = irand(-1, 1) * turnConstant;
+                TryTeleportInDirection(8.f, angle, 2.f, false);
+            }, 1600ms);
+        },1);
     }
 
-    Position GetFirstRandomAngleCollisionPosition(float dist, float angle)
+    void TryTeleportInDirection(float dist, float angle, float step, bool alwaysturn)
     {
         Position pos;
-        for (uint32 i = 0; i < 10; ++i)
+        while (dist >= 0)
         {
             pos = me->WorldObject::GetFirstCollisionPosition(dist, angle);
-            if (me->GetDistance(pos) > dist * 0.8f) // if at least 80% distance, good enough
+            if (fabsf(dist - me->GetExactDist2d(pos)) < 0.001) // Account for small deviation
                 break;
-            angle += (M_PI / 5); // else try slightly different angle
+            dist -= step; // Distance drops with each unsuccessful attempt
         }
-        return pos;
+
+        if (dist || alwaysturn)
+            me->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), Position::NormalizeOrientation(me->GetOrientation() + angle));
+        else // Orientation does not change if not moving, verified with sniffs
+            me->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), me->GetOrientation());
     }
 
     void UpdateAI(uint32 diff) override
@@ -208,7 +211,7 @@ struct boss_archimonde : public BossAI
             DoAction(ACTION_BECOME_ACTIVE_AND_CHANNEL);
         }
 
-        ScheduleHealthCheckEvent(10, [&]{
+        ScheduleHealthCheckEvent(10, [&] {
             scheduler.CancelAll();
             me->SetReactState(REACT_PASSIVE);
             DoCastAOE(SPELL_PROTECTION_OF_ELUNE, true);
@@ -217,24 +220,42 @@ struct boss_archimonde : public BossAI
             me->GetMotionMaster()->Clear(false);
             me->GetMotionMaster()->MoveIdle();
             ScheduleTimedEvent(1s, [&]
-            {
-                if (_wispCount >= 30)
                 {
-                    me->KillSelf();
-                }
-                Position wispPosition = { me->GetPositionX() + float(rand() % WISP_OFFSET), me->GetPositionY() + float(rand() % WISP_OFFSET), me->GetPositionZ(), 0.0f };
-                if (Creature* wisp = me->SummonCreature(CREATURE_ANCIENT_WISP, wispPosition))
-                {
-                    wisp->AI()->DoCast(me, SPELL_ANCIENT_SPARK);
-                    ++_wispCount;
-                }
-            }, 1500ms);
+                    if (_wispCount >= 30)
+                    {
+                        if (Map* map = me->GetMap())
+                        {
+                            map->DoForAllPlayers([this](Player* player)
+                                {
+                                    player->KilledMonsterCredit(me->GetEntry());
+                                });
+                        }
+
+                        // Find the nearest player to kill the boss
+                        Player* nearestPlayer = me->SelectNearestPlayer(100.0f); // Adjust range as needed
+
+                        if (nearestPlayer)
+                        {
+                            nearestPlayer->Kill(nearestPlayer, me);
+                        }
+                        else
+                        {
+                            Unit::Kill(nullptr, me); // Fallback in case no player is found
+                        }
+                    }
+                    Position wispPosition = { me->GetPositionX() + float(rand() % WISP_OFFSET), me->GetPositionY() + float(rand() % WISP_OFFSET), me->GetPositionZ(), 0.0f };
+                    if (Creature* wisp = me->SummonCreature(CREATURE_ANCIENT_WISP, wispPosition))
+                    {
+                        wisp->AI()->DoCast(me, SPELL_ANCIENT_SPARK);
+                        ++_wispCount;
+                    }
+                }, 1500ms);
             ScheduleTimedEvent(1500ms, [&]
-            {
-                DoCastVictim(SPELL_RED_SKY_EFFECT);
-                DoCastVictim(SPELL_HAND_OF_DEATH);
-            }, 3s);
-        });
+                {
+                    DoCastVictim(SPELL_RED_SKY_EFFECT);
+                    DoCastVictim(SPELL_HAND_OF_DEATH);
+                }, 3s);
+            });
     }
 
     void DoAction(int32 action) override
@@ -266,15 +287,15 @@ struct boss_archimonde : public BossAI
         {
             scheduler.DelayGroup(GROUP_FEAR, 5s);
             Talk(SAY_AIR_BURST);
-            DoCastRandomTarget(SPELL_AIR_BURST);
+            CastSpellOnRandomTarget(SPELL_AIR_BURST, 80.0f);
         }, 25s, 40s);
-        ScheduleTimedEvent(25s, 35s, [&]
+        ScheduleTimedEvent(8s, [&]
         {
             DoCastDoomFire();
-        }, 20s);
+        }, 8s);
         ScheduleTimedEvent(25s, 35s, [&]
         {
-            DoCastRandomTarget(SPELL_GRIP_OF_THE_LEGION);
+            CastSpellOnRandomTarget(SPELL_GRIP_OF_THE_LEGION, 80.0f);
         }, 5s, 25s);
         ScheduleTimedEvent(5s, [&]
         {
@@ -293,25 +314,29 @@ struct boss_archimonde : public BossAI
             }
         }, 5s);
         ScheduleTimedEvent(5000ms, [&]
-        {
-            bool noPlayersInRange = true;
-            if (Map* map = me->GetMap())
             {
-                map->DoForAllPlayers([&noPlayersInRange, this](Player* player)
+                bool noPlayersOrBotsInRange = true;
+                float radius = 80.0f; 
+
+                std::list<Unit*> units;
+                Acore::AnyUnfriendlyUnitInObjectRangeCheck u_check(me, me, radius);
+                Acore::UnitListSearcher<Acore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(me, units, u_check);
+                Cell::VisitAllObjects(me, searcher, radius);
+
+                for (Unit* unit : units)
                 {
-                    if (me->IsWithinMeleeRange(player))
+                    if ((unit->GetTypeId() == TYPEID_PLAYER || (unit->GetTypeId() == TYPEID_UNIT && unit->ToCreature()->IsNPCBot())) && me->IsWithinMeleeRange(unit))
                     {
-                        noPlayersInRange = false;
-                        return false;
+                        noPlayersOrBotsInRange = false;
+                        break;
                     }
-                    return true;
-                });
-            }
-            if (noPlayersInRange)
-            {
-                DoCastRandomTarget(SPELL_FINGER_OF_DEATH);
-            }
-        }, 3500ms);
+                }
+
+                if (noPlayersOrBotsInRange)
+                {
+                    CastSpellOnRandomTarget(SPELL_FINGER_OF_DEATH, radius);
+                }
+            }, 3500ms);
         ScheduleTimedEvent(10min, [&]
         {
             DoCastVictim(SPELL_RED_SKY_EFFECT);
@@ -338,31 +363,59 @@ struct boss_archimonde : public BossAI
             {
                 switch (player->getClass())
                 {
+                case CLASS_MAGE:
+                case CLASS_PRIEST:
+                case CLASS_WARLOCK:
+                    player->CastSpell(me, SPELL_SOUL_CHARGE_RED, true);
+                    break;
+                case CLASS_DEATH_KNIGHT:
+                case CLASS_PALADIN:
+                case CLASS_ROGUE:
+                case CLASS_WARRIOR:
+                    player->CastSpell(me, SPELL_SOUL_CHARGE_YELLOW, true);
+                    break;
+                case CLASS_DRUID:
+                case CLASS_HUNTER:
+                case CLASS_SHAMAN:
+                    player->CastSpell(me, SPELL_SOUL_CHARGE_GREEN, true);
+                    break;
+                case CLASS_NONE:
+                default:
+                    break;
+                }
+            }
+            else if (Creature* creature = ObjectAccessor::GetCreature(*me, guid))
+            {
+                if (creature->IsNPCBot())
+                {
+                    switch (creature->GetClass())
+                    {
                     case CLASS_MAGE:
                     case CLASS_PRIEST:
                     case CLASS_WARLOCK:
-                        player->CastSpell(me, SPELL_SOUL_CHARGE_RED, true);
+                        creature->CastSpell(me, SPELL_SOUL_CHARGE_RED, true);
                         break;
                     case CLASS_DEATH_KNIGHT:
                     case CLASS_PALADIN:
                     case CLASS_ROGUE:
                     case CLASS_WARRIOR:
-                        player->CastSpell(me, SPELL_SOUL_CHARGE_YELLOW, true);
+                        creature->CastSpell(me, SPELL_SOUL_CHARGE_YELLOW, true);
                         break;
                     case CLASS_DRUID:
                     case CLASS_HUNTER:
                     case CLASS_SHAMAN:
-                        player->CastSpell(me, SPELL_SOUL_CHARGE_GREEN, true);
+                        creature->CastSpell(me, SPELL_SOUL_CHARGE_GREEN, true);
                         break;
                     case CLASS_NONE:
                     default:
                         break;
-                }
+                    }
 
-                scheduler.Schedule(2s, 10s, [this](TaskContext)
-                {
-                    UnleashSoulCharge();
-                });
+                    scheduler.Schedule(2s, 10s, [this](TaskContext)
+                        {
+                            UnleashSoulCharge();
+                        });
+                }
             }
         }
     }
@@ -400,7 +453,7 @@ struct boss_archimonde : public BossAI
         float angle = 2 * M_PI * rand() / RAND_MAX;
         float x = me->GetPositionX() + DOOMFIRE_OFFSET * cos(angle);
         float y = me->GetPositionY() + DOOMFIRE_OFFSET * sin(angle);
-        Position spiritPosition = Position(x, y, me->GetPositionZ());
+        Position spiritPosition = Position(x, y, me->GetPositionZ(), Position::NormalizeOrientation(angle + M_PI)); //spirit faces archimonde on spawn
         Position doomfirePosition = Position(x, y, me->GetPositionZ());
         if (Creature* doomfireSpirit = me->SummonCreature(CREATURE_DOOMFIRE_SPIRIT, spiritPosition, TEMPSUMMON_TIMED_DESPAWN, 27000))
         {
@@ -411,6 +464,24 @@ struct boss_archimonde : public BossAI
                 doomfire->SetReactState(REACT_PASSIVE);
                 doomfire->GetMotionMaster()->MoveFollow(doomfireSpirit, 0.0f, 0.0f);
             }
+        }
+    }
+
+    void CastSpellOnRandomTarget(uint32 spellId, float range)
+    {
+        std::list<Unit*> targets;
+        Acore::AnyUnitInObjectRangeCheck check(me, range);
+        Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(me, targets, check);
+        Cell::VisitAllObjects(me, searcher, range);
+
+        targets.remove_if([this](Unit* unit) -> bool {
+            return !unit->IsAlive() || !(unit->GetTypeId() == TYPEID_PLAYER || (unit->GetTypeId() == TYPEID_UNIT && static_cast<Creature*>(unit)->IsNPCBot()));
+            });
+
+        if (!targets.empty())
+        {
+            Unit* target = Acore::Containers::SelectRandomContainerElement(targets);
+            DoCast(target, spellId);
         }
     }
 
@@ -452,6 +523,7 @@ private:
     std::vector<uint32> _availableAuras;
     std::vector<uint32> _availableSpells;
 };
+
 class spell_red_sky_effect : public SpellScript
 {
     PrepareSpellScript(spell_red_sky_effect);

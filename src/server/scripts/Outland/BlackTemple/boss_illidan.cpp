@@ -467,6 +467,14 @@ public:
                 events2.ScheduleEvent(EVENT_OUTRO_3, 17000);
                 break;
             case EVENT_OUTRO_3:
+                if (Map* map = me->GetMap())
+                {
+                    map->DoForAllPlayers([this](Player* player)
+                        {
+                            player->KilledMonsterCredit(me->GetEntry());
+                        });
+                }
+
                 if (Player* nearestPlayer = me->SelectNearestPlayer(100.0f))
                 {
                     nearestPlayer->Kill(nearestPlayer, me);

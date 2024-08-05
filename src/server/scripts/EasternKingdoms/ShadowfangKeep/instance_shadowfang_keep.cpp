@@ -22,6 +22,8 @@
 #include "shadowfang_keep.h"
 #include "SpellScript.h"
 #include "ScriptMgr.h"
+#include "SpellAuraEffects.h"
+
 
 enum Spells
 {

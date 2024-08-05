@@ -70,19 +70,19 @@ public:
         {
             context.SetGroup(GROUP_FROST);
 
-            DoCastRandomTarget(SPELL_ICEBOLT);
+            CastSpellOnRandomTarget(SPELL_ICEBOLT, 80.f);
             context.Repeat(9s, 15s);
         }).Schedule(12s, 17s, [this](TaskContext context)
         {
             context.SetGroup(GROUP_FROST);
 
-            if (DoCastRandomTarget(SPELL_FROST_NOVA, 0, 45.f) == SPELL_CAST_OK)
+            if (DoCastRandomTarget(SPELL_FROST_NOVA, 0, 45.f, false) == SPELL_CAST_OK)
                 Talk(SAY_NOVA);
 
             context.Repeat(25s, 30s);
         }).Schedule(21s, 28s, [this](TaskContext context)
         {
-            if (DoCastRandomTarget(SPELL_DEATH_AND_DECAY, 0, 40.f) == SPELL_CAST_OK)
+            if (DoCastRandomTarget(SPELL_DEATH_AND_DECAY, 0, 40.f, false) == SPELL_CAST_OK)
             {
                 Talk(SAY_DECAY);
                 context.DelayGroup(GROUP_FROST, 15s);
@@ -121,7 +121,7 @@ public:
 
     void KilledUnit(Unit* victim) override
     {
-        if (!_recentlySpoken && victim->IsPlayer())
+        if (!_recentlySpoken && (victim->IsPlayer() || !_recentlySpoken && victim->ToCreature()->IsNPCBot()))
         {
             Talk(SAY_ONSLAY);
             _recentlySpoken = true;
@@ -137,6 +137,24 @@ public:
     {
         Talk(SAY_ONDEATH);
         BossAI::JustDied(killer);
+    }
+
+    void CastSpellOnRandomTarget(uint32 spellId, float range)
+    {
+        std::list<Unit*> targets;
+        Acore::AnyUnitInObjectRangeCheck check(me, range);
+        Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(me, targets, check);
+        Cell::VisitAllObjects(me, searcher, range);
+
+        targets.remove_if([this](Unit* unit) -> bool {
+            return !unit->IsAlive() || unit == me->GetVictim() || !(unit->GetTypeId() == TYPEID_PLAYER || (unit->GetTypeId() == TYPEID_UNIT && static_cast<Creature*>(unit)->IsNPCBot()));
+            });
+
+        if (!targets.empty())
+        {
+            Unit* target = Acore::Containers::SelectRandomContainerElement(targets);
+            DoCast(target, spellId);
+        }
     }
 
 private:

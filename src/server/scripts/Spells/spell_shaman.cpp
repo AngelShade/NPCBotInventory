@@ -28,7 +28,6 @@
 #include "SpellMgr.h"
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
-#include "TemporarySummon.h"
 #include "Unit.h"
 #include "Player.h"
 

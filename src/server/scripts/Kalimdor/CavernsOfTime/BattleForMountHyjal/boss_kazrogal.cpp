@@ -71,7 +71,7 @@ public:
             context.Repeat();
         }).Schedule(12s, 18s, [this](TaskContext context)
         {
-            if (SelectTarget(SelectTargetMethod::Random, 0, 12.f))
+            if (SelectRandomPlayerOrNPCBot(12.f))
             {
                 DoCastAOE(SPELL_WAR_STOMP);
                 context.Repeat(15s, 30s);
@@ -80,7 +80,7 @@ public:
                 context.Repeat(1200ms);
         }).Schedule(15s, [this](TaskContext context)
         {
-            DoCastRandomTarget(SPELL_CRIPPLE, 0, 20.f);
+            CastSpellOnRandomTarget(SPELL_CRIPPLE, 20.f);
             context.Repeat(12s, 20s);
         }).Schedule(45s, [this](TaskContext context)
         {
@@ -126,6 +126,41 @@ public:
     {
         me->PlayDirectSound(SOUND_ONDEATH);
         BossAI::JustDied(killer);
+    }
+
+    Unit* SelectRandomPlayerOrNPCBot(float range)
+    {
+        std::list<Unit*> targets;
+        Acore::AnyUnitInObjectRangeCheck check(me, range);
+        Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(me, targets, check);
+        Cell::VisitAllObjects(me, searcher, range);
+
+        targets.remove_if([this](Unit* unit) -> bool {
+            return !unit->IsAlive() || !(unit->GetTypeId() == TYPEID_PLAYER || (unit->GetTypeId() == TYPEID_UNIT && static_cast<Creature*>(unit)->IsNPCBot()));
+            });
+
+        if (targets.empty())
+            return nullptr;
+
+        return Acore::Containers::SelectRandomContainerElement(targets);
+    }
+
+    void CastSpellOnRandomTarget(uint32 spellId, float range)
+    {
+        std::list<Unit*> targets;
+        Acore::AnyUnitInObjectRangeCheck check(me, range);
+        Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(me, targets, check);
+        Cell::VisitAllObjects(me, searcher, range);
+
+        targets.remove_if([this](Unit* unit) -> bool {
+            return !unit->IsAlive() || !(unit->GetTypeId() == TYPEID_PLAYER || (unit->GetTypeId() == TYPEID_UNIT && static_cast<Creature*>(unit)->IsNPCBot()));
+            });
+
+        if (!targets.empty())
+        {
+            Unit* target = Acore::Containers::SelectRandomContainerElement(targets);
+            DoCast(target, spellId);
+        }
     }
 
 private:

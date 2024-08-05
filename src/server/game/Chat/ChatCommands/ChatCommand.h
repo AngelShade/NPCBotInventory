@@ -248,6 +248,7 @@ namespace Acore::ChatCommands
         ChatCommandBuilder(char const* name, std::vector<ChatCommandBuilder> const& subCommands)
             : _name{ ASSERT_NOTNULL(name) }, _data{ std::in_place_type<SubCommandEntry>, subCommands } { }
 
+
         [[deprecated("char const* parameters to command handlers are deprecated; convert this to a typed argument handler instead")]]
         ChatCommandBuilder(char const* name, bool(&handler)(ChatHandler*, char const*), uint32 securityLevel, Acore::ChatCommands::Console allowConsole)
             : ChatCommandBuilder(name, handler, AcoreStrings(), securityLevel, allowConsole) { }
