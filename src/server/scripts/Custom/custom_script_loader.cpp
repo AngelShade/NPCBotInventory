@@ -95,6 +95,7 @@ void AddSC_boss_faith();
 void AddSC_spell_legendary_spells();
 void AddSC_fancy_city_npcs();
 void AddSC_npc_miss_danna();
+void AddSC_npc_custom_generic();
 
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
@@ -183,6 +184,7 @@ void AddCustomScripts()
     AddSC_spell_legendary_spells();
     AddSC_fancy_city_npcs();
     AddSC_npc_miss_danna();
+    AddSC_npc_custom_generic();
 
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();

@@ -81,6 +81,11 @@ void WorldSession::HandleRepopRequestOpcode(WorldPacket& recv_data)
     GetPlayer()->RemovePet(nullptr, PET_SAVE_NOT_IN_SLOT, true);
     GetPlayer()->BuildPlayerRepop();
     GetPlayer()->RepopAtGraveyard();
+    // Dinkle: Spectral Gryphon functionality
+    if (GetPlayer()->IsInWorld())
+    {
+        GetPlayer()->CastSpell(GetPlayer(), 855164, true);
+    }
 }
 
 void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recv_data)

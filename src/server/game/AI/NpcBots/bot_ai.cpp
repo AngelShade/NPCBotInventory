@@ -20612,18 +20612,24 @@ bool bot_ai::IsContestedPvP() const
 void bot_ai::SetContestedPvP()
 {
     _contestedPvPTimer = 30000;
+
     if (!me->HasUnitState(UNIT_STATE_ATTACK_PLAYER))
     {
         me->AddUnitState(UNIT_STATE_ATTACK_PLAYER);
         Acore::AIRelocationNotifier notifier(*me);
         Cell::VisitWorldObjects(me, notifier, me->GetVisibilityRange());
     }
-    if (botPet && !botPet->HasUnitState(UNIT_STATE_ATTACK_PLAYER))
+    //Dinkle
+    if (botPet)
     {
-        botPet->AddUnitState(UNIT_STATE_ATTACK_PLAYER);
-        Acore::AIRelocationNotifier notifier(*botPet);
-        Cell::VisitWorldObjects(me, notifier, me->GetVisibilityRange());
+        if (!botPet->HasUnitState(UNIT_STATE_ATTACK_PLAYER))
+        {
+            botPet->AddUnitState(UNIT_STATE_ATTACK_PLAYER);
+            Acore::AIRelocationNotifier notifier(*botPet);
+            Cell::VisitWorldObjects(me, notifier, me->GetVisibilityRange());
+        }
     }
+    //end Dinkle
 }
 void bot_ai::ResetContestedPvP()
 {

@@ -26,49 +26,49 @@
 
 enum Texts
 {
-    SAY_AGGRO       = 1,
-    SAY_DOOMFIRE    = 2,
-    SAY_AIR_BURST   = 3,
-    SAY_SLAY        = 4,
-    SAY_ENRAGE      = 5,
-    SAY_DEATH       = 6,
+    SAY_AGGRO = 1,
+    SAY_DOOMFIRE = 2,
+    SAY_AIR_BURST = 3,
+    SAY_SLAY = 4,
+    SAY_ENRAGE = 5,
+    SAY_DEATH = 6,
     SAY_SOUL_CHARGE = 7,
 };
 
 enum ArchiSpells
 {
-    SPELL_DENOUEMENT_WISP       = 32124,
-    SPELL_ANCIENT_SPARK         = 39349,
-    SPELL_PROTECTION_OF_ELUNE   = 38528,
+    SPELL_DENOUEMENT_WISP = 32124,
+    SPELL_ANCIENT_SPARK = 39349,
+    SPELL_PROTECTION_OF_ELUNE = 38528,
 
-    SPELL_DRAIN_WORLD_TREE      = 39140,
-    SPELL_DRAIN_WORLD_TREE_2    = 39141,
+    SPELL_DRAIN_WORLD_TREE = 39140,
+    SPELL_DRAIN_WORLD_TREE_2 = 39141,
 
-    SPELL_FINGER_OF_DEATH       = 31984,
-    SPELL_RED_SKY_EFFECT        = 32111,
-    SPELL_HAND_OF_DEATH         = 35354,
-    SPELL_AIR_BURST             = 32014,
-    SPELL_GRIP_OF_THE_LEGION    = 31972,
-    SPELL_DOOMFIRE_STRIKE       = 31903,    //summons two creatures
-    SPELL_DOOMFIRE_SPAWN        = 32074,
-    SPELL_DOOMFIRE              = 31945,
-    SPELL_DOOMFIRE_DOT          = 31969,
-    SPELL_SOUL_CHARGE_YELLOW    = 32045,
-    SPELL_SOUL_CHARGE_GREEN     = 32051,
-    SPELL_SOUL_CHARGE_RED       = 32052,
-    SPELL_UNLEASH_SOUL_YELLOW   = 32054,
-    SPELL_UNLEASH_SOUL_GREEN    = 32057,
-    SPELL_UNLEASH_SOUL_RED      = 32053,
-    SPELL_FEAR                  = 31970,
+    SPELL_FINGER_OF_DEATH = 31984,
+    SPELL_RED_SKY_EFFECT = 32111,
+    SPELL_HAND_OF_DEATH = 35354,
+    SPELL_AIR_BURST = 32014,
+    SPELL_GRIP_OF_THE_LEGION = 31972,
+    SPELL_DOOMFIRE_STRIKE = 31903,    //summons two creatures
+    SPELL_DOOMFIRE_SPAWN = 32074,
+    SPELL_DOOMFIRE = 31945,
+    SPELL_DOOMFIRE_DOT = 31969,
+    SPELL_SOUL_CHARGE_YELLOW = 32045,
+    SPELL_SOUL_CHARGE_GREEN = 32051,
+    SPELL_SOUL_CHARGE_RED = 32052,
+    SPELL_UNLEASH_SOUL_YELLOW = 32054,
+    SPELL_UNLEASH_SOUL_GREEN = 32057,
+    SPELL_UNLEASH_SOUL_RED = 32053,
+    SPELL_FEAR = 31970,
 };
 
 enum Summons
 {
-    CREATURE_DOOMFIRE           = 18095,
-    CREATURE_DOOMFIRE_SPIRIT    = 18104,
-    CREATURE_ANCIENT_WISP       = 17946,
-    CREATURE_CHANNEL_TARGET     = 22418,
-    DISPLAY_ID_TRIGGER          = 11686
+    CREATURE_DOOMFIRE = 18095,
+    CREATURE_DOOMFIRE_SPIRIT = 18104,
+    CREATURE_ANCIENT_WISP = 17946,
+    CREATURE_CHANNEL_TARGET = 22418,
+    DISPLAY_ID_TRIGGER = 11686
 };
 
 enum Events
@@ -78,7 +78,7 @@ enum Events
 
 enum SpellGroups
 {
-    GROUP_FEAR  = 0
+    GROUP_FEAR = 0
 };
 
 uint32 const availableChargeAurasAndSpells[3][2] = {
@@ -104,19 +104,19 @@ struct npc_ancient_wisp : public ScriptedAI
     {
         me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
         ScheduleTimedEvent(1s, [&]
-        {
-            if (Creature* archimonde = _instance->GetCreature(DATA_ARCHIMONDE))
             {
-                if (archimonde->HealthBelowPct(2) || !archimonde->IsAlive())
+                if (Creature* archimonde = _instance->GetCreature(DATA_ARCHIMONDE))
                 {
-                    DoCastSelf(SPELL_DENOUEMENT_WISP);
+                    if (archimonde->HealthBelowPct(2) || !archimonde->IsAlive())
+                    {
+                        DoCastSelf(SPELL_DENOUEMENT_WISP);
+                    }
+                    else
+                    {
+                        DoCast(archimonde, SPELL_ANCIENT_SPARK);
+                    }
                 }
-                else
-                {
-                    DoCast(archimonde, SPELL_ANCIENT_SPARK);
-                }
-            }
-        }, 1s);
+            }, 1s);
     }
 
     void JustEngagedWith(Unit* /*who*/) override { }
@@ -143,7 +143,7 @@ private:
 
 struct npc_doomfire_spirit : public ScriptedAI
 {
-    npc_doomfire_spirit(Creature* creature) : ScriptedAI(creature){ }
+    npc_doomfire_spirit(Creature* creature) : ScriptedAI(creature) { }
 
     float const turnConstant = 0.785402f; // 45 degree turns, verified with sniffs
 
@@ -155,8 +155,8 @@ struct npc_doomfire_spirit : public ScriptedAI
             ScheduleTimedEvent(10ms, [&] {
                 float angle = irand(-1, 1) * turnConstant;
                 TryTeleportInDirection(8.f, angle, 2.f, false);
-            }, 1600ms);
-        },1);
+                }, 1600ms);
+            }, 1);
     }
 
     void TryTeleportInDirection(float dist, float angle, float step, bool alwaysturn)
@@ -187,9 +187,9 @@ struct boss_archimonde : public BossAI
     boss_archimonde(Creature* creature) : BossAI(creature, DATA_ARCHIMONDE)
     {
         scheduler.SetValidator([&]
-        {
-            return !me->HasUnitState(UNIT_STATE_CASTING);
-        });
+            {
+                return !me->HasUnitState(UNIT_STATE_CASTING);
+            });
     }
 
     void Reset() override
@@ -262,19 +262,19 @@ struct boss_archimonde : public BossAI
     {
         switch (action)
         {
-            case ACTION_BECOME_ACTIVE_AND_CHANNEL:
-                me->SetReactState(REACT_AGGRESSIVE);
-                me->SetVisible(true);
-                if (!_isChanneling)
+        case ACTION_BECOME_ACTIVE_AND_CHANNEL:
+            me->SetReactState(REACT_AGGRESSIVE);
+            me->SetVisible(true);
+            if (!_isChanneling)
+            {
+                if (Creature* nordrassil = me->SummonCreature(CREATURE_CHANNEL_TARGET, nordrassilPosition, TEMPSUMMON_TIMED_DESPAWN, 1200000))
                 {
-                    if (Creature* nordrassil = me->SummonCreature(CREATURE_CHANNEL_TARGET, nordrassilPosition, TEMPSUMMON_TIMED_DESPAWN, 1200000))
-                    {
-                        DoCast(nordrassil, SPELL_DRAIN_WORLD_TREE);
-                        _isChanneling = true;
-                        nordrassil->AI()->DoCast(me, SPELL_DRAIN_WORLD_TREE_2, true);
-                    }
+                    DoCast(nordrassil, SPELL_DRAIN_WORLD_TREE);
+                    _isChanneling = true;
+                    nordrassil->AI()->DoCast(me, SPELL_DRAIN_WORLD_TREE_2, true);
                 }
-                break;
+            }
+            break;
         }
     }
 
@@ -284,39 +284,39 @@ struct boss_archimonde : public BossAI
         me->InterruptNonMeleeSpells(false);
         Talk(SAY_AGGRO);
         ScheduleTimedEvent(25s, 35s, [&]
-        {
-            scheduler.DelayGroup(GROUP_FEAR, 5s);
-            Talk(SAY_AIR_BURST);
-            CastSpellOnRandomTarget(SPELL_AIR_BURST, 80.0f);
-        }, 25s, 40s);
-        ScheduleTimedEvent(8s, [&]
-        {
-            DoCastDoomFire();
-        }, 8s);
-        ScheduleTimedEvent(25s, 35s, [&]
-        {
-            CastSpellOnRandomTarget(SPELL_GRIP_OF_THE_LEGION, 80.0f);
-        }, 5s, 25s);
-        ScheduleTimedEvent(5s, [&]
-        {
-            if (me->GetExactDist2d(nordrassilPosition) < 75.0f)
             {
-                if (!_enraged)
+                scheduler.DelayGroup(GROUP_FEAR, 5s);
+                Talk(SAY_AIR_BURST);
+                CastSpellOnRandomTargetNoTank(SPELL_AIR_BURST, 80.0f);
+            }, 25s, 40s);
+        ScheduleTimedEvent(8s, [&]
+            {
+                DoCastDoomFire();
+            }, 8s);
+        ScheduleTimedEvent(25s, 35s, [&]
+            {
+                CastSpellOnRandomTarget(SPELL_GRIP_OF_THE_LEGION, 80.0f);
+            }, 5s, 25s);
+        ScheduleTimedEvent(5s, [&]
+            {
+                if (me->GetExactDist2d(nordrassilPosition) < 75.0f)
                 {
-                    _enraged = true;
-                    Talk(SAY_ENRAGE);
-                    ScheduleTimedEvent(1s, [&]
+                    if (!_enraged)
                     {
-                        DoCastVictim(SPELL_RED_SKY_EFFECT);
-                        DoCastVictim(SPELL_HAND_OF_DEATH);
-                    }, 3s);
+                        _enraged = true;
+                        Talk(SAY_ENRAGE);
+                        ScheduleTimedEvent(1s, [&]
+                            {
+                                DoCastVictim(SPELL_RED_SKY_EFFECT);
+                                DoCastVictim(SPELL_HAND_OF_DEATH);
+                            }, 3s);
+                    }
                 }
-            }
-        }, 5s);
+            }, 5s);
         ScheduleTimedEvent(5000ms, [&]
             {
                 bool noPlayersOrBotsInRange = true;
-                float radius = 80.0f; 
+                float radius = 80.0f;
 
                 std::list<Unit*> units;
                 Acore::AnyUnfriendlyUnitInObjectRangeCheck u_check(me, me, radius);
@@ -338,15 +338,15 @@ struct boss_archimonde : public BossAI
                 }
             }, 3500ms);
         ScheduleTimedEvent(10min, [&]
-        {
-            DoCastVictim(SPELL_RED_SKY_EFFECT);
-            DoCastVictim(SPELL_HAND_OF_DEATH);
-        }, 3s);
+            {
+                DoCastVictim(SPELL_RED_SKY_EFFECT);
+                DoCastVictim(SPELL_HAND_OF_DEATH);
+            }, 3s);
         scheduler.Schedule(40s, GROUP_FEAR, [this](TaskContext context)
-        {
-            DoCastAOE(SPELL_FEAR);
-            context.Repeat(42s);
-        });
+            {
+                DoCastAOE(SPELL_FEAR);
+                context.Repeat(42s);
+            });
         instance->SetData(DATA_SPAWN_WAVES, 1);
     }
 
@@ -485,6 +485,24 @@ struct boss_archimonde : public BossAI
         }
     }
 
+    void CastSpellOnRandomTargetNoTank(uint32 spellId, float range)
+    {
+        std::list<Unit*> potentialTargets;
+        Acore::AnyUnitInObjectRangeCheck unitCheck(me, range);
+        Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> targetSearcher(me, potentialTargets, unitCheck);
+        Cell::VisitAllObjects(me, targetSearcher, range);
+
+        potentialTargets.remove_if([this](Unit* potentialTarget) -> bool {
+            return !potentialTarget->IsAlive() || potentialTarget == me->GetVictim() || !(potentialTarget->GetTypeId() == TYPEID_PLAYER || (potentialTarget->GetTypeId() == TYPEID_UNIT && static_cast<Creature*>(potentialTarget)->IsNPCBot()));
+            });
+
+        if (!potentialTargets.empty())
+        {
+            Unit* selectedTarget = Acore::Containers::SelectRandomContainerElement(potentialTargets);
+            DoCast(selectedTarget, spellId);
+        }
+    }
+
     void UnleashSoulCharge()
     {
         me->InterruptNonMeleeSpells(false);
@@ -540,24 +558,6 @@ class spell_red_sky_effect : public SpellScript
     }
 };
 
-class spell_air_burst : public SpellScript
-{
-    PrepareSpellScript(spell_air_burst);
-
-    void FilterTargets(std::list<WorldObject*>& targets)
-    {
-        if (Unit* victim = GetCaster()->GetVictim())
-        {
-            targets.remove_if(Acore::ObjectGUIDCheck(victim->GetGUID(), true));
-        }
-    }
-
-    void Register() override
-    {
-        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_air_burst::FilterTargets, EFFECT_ALL, TARGET_UNIT_DEST_AREA_ENEMY);
-    }
-};
-
 class spell_doomfire : public AuraScript
 {
     PrepareAuraScript(spell_doomfire);
@@ -575,7 +575,7 @@ class spell_doomfire : public AuraScript
 
         int32 bp = GetSpellInfo()->Effects[EFFECT_1].CalcValue();
         float tickCoef = (static_cast<float>(aurEff->GetTickNumber() - 1) / aurEff->GetTotalTicks()); // Tick moved back to ensure proper damage on each tick
-        int32 damage = bp - (bp*tickCoef);
+        int32 damage = bp - (bp * tickCoef);
         target->CastCustomSpell(target, SPELL_DOOMFIRE_DOT, &damage, &damage, &damage, true, nullptr, nullptr, target->GetGUID());
     }
 
@@ -588,10 +588,8 @@ class spell_doomfire : public AuraScript
 void AddSC_boss_archimonde()
 {
     RegisterSpellScript(spell_red_sky_effect);
-    RegisterSpellScript(spell_air_burst);
     RegisterSpellScript(spell_doomfire);
     RegisterHyjalAI(boss_archimonde);
     RegisterHyjalAI(npc_ancient_wisp);
     RegisterHyjalAI(npc_doomfire_spirit);
 }
-

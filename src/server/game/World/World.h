@@ -237,7 +237,6 @@ public:
 
     void SetInitialWorldSettings() override;
     void LoadConfigSettings(bool reload = false) override;
-
     void SendWorldText(uint32 string_id, ...) override;
     void SendGlobalText(const char* text, WorldSession* self) override;
     void SendGMText(uint32 string_id, ...) override;

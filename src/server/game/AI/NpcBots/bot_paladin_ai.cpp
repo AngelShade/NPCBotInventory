@@ -639,13 +639,14 @@ public:
             if (!IsSpellReady(HAND_OF_SALVATION_1, diff) || IsCasting() || Rand() > 40)
                 return;
 
-            //Glyph of Salvation
+            // Glyph of Salvation
             if (me->GetLevel() >= 26 && (IAmFree() || IsTank()))
             {
                 if (!me->getAttackers().empty() && GetHealthPCT(me) < std::max<int32>(80 - 5 * me->getAttackers().size(), 25))
                 {
                     if (doCast(me, GetSpell(HAND_OF_SALVATION_1)))
-                    {}
+                    {
+                    }
                 }
                 return;
             }
@@ -655,7 +656,7 @@ public:
 
             Group const* gr = master->GetGroup();
             if (!gr)
-                 return;
+                return;
 
             std::vector<Unit*> members = BotMgr::GetAllGroupMembers(gr);
             for (uint8 i = 0; i < 2; ++i)
@@ -668,6 +669,7 @@ public:
                         (member->IsNPCBot() && member->ToCreature()->IsTempBot()) ||
                         member->HasAuraTypeWithFamilyFlags(SPELL_AURA_PERIODIC_TRIGGER_SPELL_WITH_VALUE, SPELLFAMILY_PALADIN, 0x100))
                         continue;
+
                     if (HOSTarget(member))
                     {
                         // Notify the group about Hand of Salvation
@@ -683,13 +685,17 @@ public:
             // Dinkle: Check if the target is not the Paladin itself
             if (target != me)
             {
+                // Dinkle: Check if the target has any tank auras and skip
+                if (target->HasAura(48263) || target->HasAura(5487) || target->HasAura(9634) || target->HasAura(71) || target->HasAura(890013))
+                    return false;
+
                 for (Unit* attacker : target->getAttackers())
                 {
                     if (attacker->CanHaveThreatList() && attacker->getAttackers().size() >= 3 && target->GetDistance(attacker) < 15)
                     {
                         if (doCast(target, GetSpell(HAND_OF_SALVATION_1)))
                             return true;
-                        break; 
+                        break;
                     }
                 }
             }
