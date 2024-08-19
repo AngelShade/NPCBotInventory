@@ -1183,7 +1183,7 @@ class spell_pal_crusader_strike : public SpellScript
     void HandleOnHit()
     {
         Unit* caster = GetCaster();
-        if (!caster || !caster->HasAura(888051)) // Check if caster has the required aura
+        if (!caster)
             return;
 
         Unit* target = GetHitUnit();
@@ -1191,10 +1191,27 @@ class spell_pal_crusader_strike : public SpellScript
             return;
 
         int32 damage = GetHitDamage();
-        int32 dotDamage = CalculatePct(damage, 6.25); // 6.25% of damage for each tick
 
-        // Apply the DoT as a new instance each time
-        caster->CastCustomSpell(target, 888050, &dotDamage, nullptr, nullptr, true);
+        // Tier 1: Apply DoT if caster has aura 888051
+        if (caster->HasAura(888051))
+        {
+            int32 dotDamage = CalculatePct(damage, 6.25); // 6.25% of damage for each tick
+            caster->CastCustomSpell(target, 888050, &dotDamage, nullptr, nullptr, true);
+        }
+
+        // Tier 3: Deal additional Shadow damage if caster has aura 888052
+        if (caster->HasAura(888052))
+        {
+            int32 shadowDamage = CalculatePct(damage, 25); // 25% of the damage dealt as Shadow damage
+            caster->CastCustomSpell(target, 810947, &shadowDamage, nullptr, nullptr, true);
+        }
+
+        // Tier 3: Heal for 15% of the damage dealt
+        if (caster->HasAura(888053))
+        {
+        int32 healAmount = CalculatePct(damage, 15);
+        caster->CastCustomSpell(caster, 845470, &healAmount, nullptr, nullptr, true); // 45470 is the heal spell for Death Strike
+        }
     }
 
     void Register() override

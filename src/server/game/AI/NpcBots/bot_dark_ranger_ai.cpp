@@ -132,7 +132,7 @@ public:
         void JustEngagedWith(Unit* u) override { bot_ai::JustEngagedWith(u); }
         void EnterEvadeMode(EvadeReason why = EVADE_REASON_OTHER) override { bot_ai::EnterEvadeMode(why); }
         void MoveInLineOfSight(Unit* u) override { bot_ai::MoveInLineOfSight(u); }
-        void JustDied(Unit* u) override { UnsummonAll(); bot_ai::JustDied(u); }
+        void JustDied(Unit* u) override { UnsummonAll(false); bot_ai::JustDied(u); }
         void DoNonCombatActions(uint32 /*diff*/) { }
 
         void KilledUnit(Unit* u) override
@@ -483,15 +483,9 @@ public:
                         }
                     }
                 }
-                //if (u)
-                //    TC_LOG_ERROR("entities.player", "bot_dranger_ai::SummonBotPet(): found minion to erase(1)");
-                //try 3: last resort
-                if (!u)
-                    u = *(_minions.begin());
-                //if (u)
-                //    TC_LOG_ERROR("entities.player", "bot_dranger_ai::SummonBotPet(): found minion to erase(2)");
 
-                u->ToTempSummon()->UnSummon();
+                if (!u)
+                    return;
             }
 
             //addition: change unit's modelid
@@ -544,14 +538,9 @@ public:
             _minions.insert(myPet);
         }
 
-        void UnsummonAll() override
+        void UnsummonAll(bool savePets = true) override
         {
-            while (!_minions.empty())
-                (*_minions.begin())->ToTempSummon()->UnSummon();
-            //for (Summons::const_iterator itr = _minions.begin(); itr != _minions.end(); ++itr)
-            //    (*itr)->ToTempSummon()->UnSummon();
-
-            //_minions.clear();
+            UnsummonCreatures(_minions, savePets);
         }
 
         void SummonedCreatureDies(Creature* /*summon*/, Unit* /*killer*/) override
@@ -567,6 +556,11 @@ public:
             //TC_LOG_ERROR("entities.unit", "SummonedCreatureDespawn: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
             if (_minions.find(summon) != _minions.end())
                 _minions.erase(summon);
+        }
+
+        void ResummonAll() override
+        {
+            ResummonCreatures(_minions);
         }
 
         float GetSpellAttackRange(bool longRange) const override
@@ -587,7 +581,7 @@ public:
 
         void Reset() override
         {
-            UnsummonAll();
+            UnsummonAll(false);
 
             //for (uint8 i = 0; i != MAX_SPELL_SCHOOL; ++i)
             //    me->m_threatModifier[1] = 0.0f;
@@ -642,7 +636,7 @@ public:
         //}
     private:
         ObjectGuid _blackArrowKillGUID;
-        typedef std::set<Unit*> Summons;
+        typedef std::set<Creature*> Summons;
         Summons _minions;
     };
 };

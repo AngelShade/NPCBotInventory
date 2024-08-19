@@ -82,10 +82,10 @@ void WorldSession::HandleRepopRequestOpcode(WorldPacket& recv_data)
     GetPlayer()->BuildPlayerRepop();
     GetPlayer()->RepopAtGraveyard();
     // Dinkle: Spectral Gryphon functionality
-    if (GetPlayer()->IsInWorld())
-    {
-        GetPlayer()->CastSpell(GetPlayer(), 855164, true);
-    }
+   // if (GetPlayer()->IsInWorld())
+   // {
+   //     GetPlayer()->CastSpell(GetPlayer(), 855164, true);
+   // }
 }
 
 void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recv_data)

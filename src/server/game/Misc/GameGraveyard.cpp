@@ -129,6 +129,7 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
 
     WorldLocation loc = nearCorpse ? player->GetCorpseLocation() : player->GetWorldLocation();
     uint32 mapId = loc.GetMapId();
+    uint32 zoneId = player->GetZoneId();
     float x = loc.GetPositionX();
     float y = loc.GetPositionY();
     float z = loc.GetPositionZ();
@@ -138,6 +139,11 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
     {
         return GetDefaultGraveyard(teamId);
     }
+
+    // Variables for nearest graveyard in the same zone
+    bool foundInZone = false;
+    float nearestDistInZone = std::numeric_limits<float>::max();
+    GraveyardStruct const* nearestGraveyardInZone = nullptr;
 
     // Variables for nearest graveyard on the same map
     bool foundNear = false;
@@ -167,7 +173,22 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
         {
             continue;
         }
-        
+
+        // Retrieve the zone ID of the graveyard's location
+        uint32 graveyardZoneId = sMapMgr->GetZoneId(player->GetPhaseMask(), graveyard->Map, graveyard->x, graveyard->y, graveyard->z);
+
+        // Check if the graveyard is within the same zone
+        if (graveyardZoneId == zoneId)
+        {
+            float dist2 = (graveyard->x - x) * (graveyard->x - x) + (graveyard->y - y) * (graveyard->y - y) + (graveyard->z - z) * (graveyard->z - z);
+            if (dist2 < nearestDistInZone)
+            {
+                nearestDistInZone = dist2;
+                nearestGraveyardInZone = graveyard;
+                foundInZone = true;
+            }
+            continue;
+        }
 
         // Check for map compatibility (e.g., dungeons, battlegrounds, raids)
         if (mapId != graveyard->Map)
@@ -209,8 +230,10 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
         }
     }
 
-    // Final selection logic
-    if (nearestGraveyard)
+    // Final selection logic: prioritize same zone, then same map, then entrance map
+    if (foundInZone)
+        return nearestGraveyardInZone;
+    else if (nearestGraveyard)
         return nearestGraveyard;
     else if (entryEntr)
         return entryEntr;

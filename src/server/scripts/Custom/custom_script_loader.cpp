@@ -96,6 +96,9 @@ void AddSC_spell_legendary_spells();
 void AddSC_fancy_city_npcs();
 void AddSC_npc_miss_danna();
 void AddSC_npc_custom_generic();
+void AddSC_custom_hunter_spell_scripts();
+void AddSC_randomquestfixes();
+void AddSC_spell_mage_fire_blast_charges();
 
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
@@ -185,6 +188,9 @@ void AddCustomScripts()
     AddSC_fancy_city_npcs();
     AddSC_npc_miss_danna();
     AddSC_npc_custom_generic();
+    AddSC_custom_hunter_spell_scripts();
+    AddSC_randomquestfixes();
+    AddSC_spell_mage_fire_blast_charges();
 
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();

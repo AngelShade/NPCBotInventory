@@ -497,6 +497,7 @@ class spell_hun_chimera_shot : public SpellScript
                 flag96 familyFlag = aura->GetSpellInfo()->SpellFamilyFlags;
                 if (!(familyFlag[1] & 0x00000080 || familyFlag[0] & 0x0000C000))
                     continue;
+
                 if (AuraEffect* aurEff = aura->GetEffect(0))
                 {
                     // Serpent Sting - Instantly deals 40% of the damage done by your Serpent Sting.
@@ -507,16 +508,24 @@ class spell_hun_chimera_shot : public SpellScript
                         basePoint = aurEff->GetAmount();
                         ApplyPct(basePoint, TickCount * 40);
                         basePoint = unitTarget->SpellDamageBonusTaken(caster, aura->GetSpellInfo(), basePoint, DOT, aura->GetStackAmount());
+
+                        // Tier 3
+                        if (caster->HasAura(844054))  
+                        {
+                            int32 totalDotDamage = aurEff->GetAmount() * GetMaxTicks();
+                            int32 instantDamage = totalDotDamage / 2;  // 50% of the total periodic damage
+                            caster->CastCustomSpell(unitTarget, 857783, &instantDamage, NULL, NULL, true);
+                        }
                     }
                     // Viper Sting - Instantly restores mana to you equal to 60% of the total amount drained by your Viper Sting.
                     else if (familyFlag[1] & 0x00000080)
                     {
-                        int32 TickCount = aura->GetEffect(0)->GetTotalTicks();
+                        int32 TickCount = aurEff->GetTotalTicks();
                         spellId = SPELL_HUNTER_CHIMERA_SHOT_VIPER;
 
                         // Amount of one aura tick
                         basePoint = int32(CalculatePct(unitTarget->GetMaxPower(POWER_MANA), aurEff->GetAmount()));
-                        int32 casterBasePoint = aurEff->GetAmount() * unitTarget->GetMaxPower(POWER_MANA) / 50; /// @todo: Caster uses unitTarget?
+                        int32 casterBasePoint = aurEff->GetAmount() * unitTarget->GetMaxPower(POWER_MANA) / 50;
                         if (basePoint > casterBasePoint)
                             basePoint = casterBasePoint;
                         ApplyPct(basePoint, TickCount * 60);
@@ -545,6 +554,13 @@ class spell_hun_chimera_shot : public SpellScript
             if (spellId)
                 caster->CastCustomSpell(unitTarget, spellId, &basePoint, 0, 0, true);
         }
+    }
+
+    int32 GetMaxTicks()
+    {
+        // Calculate the number of ticks based on the spell's total duration and tick interval
+        // Assuming 15 seconds duration and 3 seconds interval
+        return 5;
     }
 
     void Register() override

@@ -1695,7 +1695,7 @@ class spell_dk_death_strike : public SpellScript
             // Improved Death Strike
             if (AuraEffect const* aurEff = caster->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_DEATHKNIGHT, DK_ICON_ID_IMPROVED_DEATH_STRIKE, 0))
                 AddPct(bp, caster->CalculateSpellDamage(caster, aurEff->GetSpellInfo(), 2));
-            caster->CastCustomSpell(caster, SPELL_DK_DEATH_STRIKE_HEAL, &bp, nullptr, nullptr, false);
+            caster->CastCustomSpell(caster, SPELL_DK_DEATH_STRIKE_HEAL, &bp, &bp, nullptr, false);
         }
     }
 

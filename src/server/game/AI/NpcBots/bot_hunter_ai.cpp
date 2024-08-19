@@ -250,7 +250,7 @@ public:
         void KilledUnit(Unit* u) override { bot_ai::KilledUnit(u); }
         void EnterEvadeMode(EvadeReason why = EVADE_REASON_OTHER) override { bot_ai::EnterEvadeMode(why); }
         void MoveInLineOfSight(Unit* u) override { bot_ai::MoveInLineOfSight(u); }
-        void JustDied(Unit* u) override { Aspect = 0; UnsummonAll(); bot_ai::JustDied(u); }
+        void JustDied(Unit* u) override { Aspect = 0; UnsummonAll(false); bot_ai::JustDied(u); }
         void DoNonCombatActions(uint32 /*diff*/) { }
 
         void CheckAspects(uint32 diff)
@@ -1079,10 +1079,17 @@ public:
                 SetSpellCooldown(CHIMERA_SHOT_1, 500); //fail
             }
             //STING
-            if (GetSpellCooldown(SERPENT_STING_1) <= diff && can_do_nature && stingTimer <= diff && Rand() < 60)
+            if (GetSpellCooldown(SERPENT_STING_1) <= diff && can_do_nature && stingTimer <= diff && Rand() < 80)
             {
                 uint32 STING = 0;
                 AuraEffect const* sting = nullptr;
+                if (!STING && GetSpell(SERPENT_STING_1) && HasRole(BOT_ROLE_DPS) &&
+                    mytar->GetHealth() > me->GetMaxHealth() / 3)
+                {
+                    sting = mytar->GetAuraEffect(SPELL_AURA_MOD_DAMAGE_FROM_CASTER, SPELLFAMILY_HUNTER, 0x4000, 0x0, 0x0, me->GetGUID());
+                    if (!sting)
+                        STING = SERPENT_STING_1;
+                }
                 if (!STING && GetSpell(SCORPID_STING_1) && mytar->GetTypeId() == TYPEID_UNIT &&
                     mytar->ToCreature()->GetCreatureTemplate()->rank != CREATURE_ELITE_NORMAL)
                 {
@@ -1098,13 +1105,6 @@ public:
                     sting = mytar->GetAuraEffect(SPELL_AURA_PERIODIC_MANA_LEECH, SPELLFAMILY_HUNTER, 0x0, 0x80, 0x0, me->GetGUID());
                     if (!sting)
                         STING = VIPER_STING_1;
-                }
-                if (!STING && GetSpell(SERPENT_STING_1) && HasRole(BOT_ROLE_DPS) &&
-                    mytar->GetHealth() > me->GetMaxHealth() / 3)
-                {
-                    sting = mytar->GetAuraEffect(SPELL_AURA_MOD_DAMAGE_FROM_CASTER, SPELLFAMILY_HUNTER, 0x4000, 0x0, 0x0, me->GetGUID());
-                    if (!sting)
-                        STING = SERPENT_STING_1;
                 }
 
                 if (sting && sting->GetBase()->GetCasterGUID() == me->GetGUID() &&
@@ -1938,7 +1938,7 @@ public:
         void SummonBotPet()
         {
             if (botPet)
-                UnsummonAll();
+                UnsummonAll(false);
 
             if (me->GetLevel() < 10)
                 return;
@@ -2023,10 +2023,9 @@ public:
             botPet = myPet;
         }
 
-        void UnsummonAll() override
+        void UnsummonAll(bool savePets = true) override
         {
-            if (botPet)
-                botPet->ToTempSummon()->UnSummon();
+            UnsummonPet(savePets);
         }
 
         void SummonedCreatureDies(Creature* /*summon*/, Unit* /*killer*/) override
@@ -2045,6 +2044,11 @@ public:
                 petSummonTimer = 10000;
                 botPet = nullptr;
             }
+        }
+
+        void ResummonAll() override
+        {
+            ResummonPet();
         }
 
         float GetSpellAttackRange(bool longRange) const override
@@ -2091,7 +2095,7 @@ public:
             {
                 case BOTAI_MISC_PET_TYPE:
                     myPetType = value;
-                    UnsummonAll();
+                    UnsummonAll(false);
                     break;
                 default:
                     break;
@@ -2100,7 +2104,7 @@ public:
 
         void Reset() override
         {
-            UnsummonAll();
+            UnsummonAll(false);
 
             myPetType = 0;
 
