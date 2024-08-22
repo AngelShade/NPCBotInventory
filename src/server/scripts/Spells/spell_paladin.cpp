@@ -482,16 +482,35 @@ class spell_pal_avenging_wrath : public AuraScript
     void HandleApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         Unit* target = GetTarget();
+        Unit* caster = GetCaster();
+
+        // Apply Sanctified Wrath effect if the talent is present
         if (AuraEffect const* aurEff = target->GetAuraEffectOfRankedSpell(SPELL_PALADIN_SANCTIFIED_WRATH_TALENT_R1, EFFECT_2))
         {
             int32 basepoints = aurEff->GetAmount();
             target->CastCustomSpell(target, SPELL_PALADIN_SANCTIFIED_WRATH, &basepoints, &basepoints, nullptr, true, nullptr, aurEff);
         }
+
+        // Dinkle: T3
+        if (caster == target && caster->GetGUID() == GetCasterGUID() && caster->HasAura(888054)) // Required aura
+        {
+            caster->AddAura(838425, caster); // Custom aura to be applied
+        }
     }
 
     void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
-        GetTarget()->RemoveAurasDueToSpell(SPELL_PALADIN_SANCTIFIED_WRATH);
+        Unit* target = GetTarget();
+        Unit* caster = GetCaster();
+
+        // Remove Sanctified Wrath effect
+        target->RemoveAurasDueToSpell(SPELL_PALADIN_SANCTIFIED_WRATH);
+
+        // Remove T3 aura
+        if (caster == target && caster->GetGUID() == GetCasterGUID())
+        {
+            caster->RemoveAura(838425);
+        }
     }
 
     void Register() override
@@ -1202,7 +1221,7 @@ class spell_pal_crusader_strike : public SpellScript
         // Tier 3: Deal additional Shadow damage if caster has aura 888052
         if (caster->HasAura(888052))
         {
-            int32 shadowDamage = CalculatePct(damage, 25); // 25% of the damage dealt as Shadow damage
+            int32 shadowDamage = CalculatePct(damage, 30); // 30% of the damage dealt as Shadow damage
             caster->CastCustomSpell(target, 810947, &shadowDamage, nullptr, nullptr, true);
         }
 
