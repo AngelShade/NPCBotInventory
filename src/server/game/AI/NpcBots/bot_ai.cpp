@@ -40,6 +40,7 @@
 #include "PathGenerator.h"
 #include "PointMovementGenerator.h"
 #include "ScriptedGossip.h"
+#include "ScriptMgr.h"
 #include "SpellAuraEffects.h"
 #include "TemporarySummon.h"
 #include "Transport.h"
@@ -5728,6 +5729,57 @@ void bot_ai::CalculateAttackPos(Unit* target, Position& pos, bool& force) const
         return;
     }
 
+    // Ranged bots that are being targeted should move towards a tank bot or towards the player
+    if (!IAmFree() && !IsTank(me) && HasRole(BOT_ROLE_RANGED) && target->GetVictim() == me && !CCed(target))
+    {
+        std::vector<Unit const*> safetyTargets;
+        if (Group const* gr = master->GetGroup())
+        {
+            for (GroupReference const* itr = gr->GetFirstMember(); itr != nullptr; itr = itr->next())
+            {
+                Player const* pl = itr->GetSource();
+                if (!pl || !pl->IsInMap(me) || pl->GetDistance(me) > VISIBILITY_DISTANCE_NORMAL)
+                    continue;
+                if (pl->IsAlive() && !pl->HasUnitState(UNIT_STATE_ISOLATED) && IsTank(pl))
+                    safetyTargets.push_back(pl);
+                if (!pl->HaveBot())
+                    continue;
+                BotMap const* map = pl->GetBotMgr()->GetBotMap();
+                for (BotMap::const_iterator citr = map->begin(); citr != map->end(); ++citr)
+                {
+                    Creature const* c = citr->second;
+                    if (c && c->IsInWorld() && me->GetMap() == c->FindMap() && c->IsAlive() && !c->HasUnitState(UNIT_STATE_ISOLATED) && IsTank(c) && c->GetBotAI()->HasRole(BOT_ROLE_DPS))
+                        safetyTargets.push_back(c);
+                }
+            }
+        }
+        else
+        {
+            BotMap const* map = master->GetBotMgr()->GetBotMap();
+            for (BotMap::const_iterator citr = map->begin(); citr != map->end(); ++citr)
+            {
+                Creature const* c = citr->second;
+                if (c && c->IsInWorld() && me->GetMap() == c->FindMap() && c->IsAlive() && !c->HasUnitState(UNIT_STATE_ISOLATED) && IsTank(c) && c->GetBotAI()->HasRole(BOT_ROLE_DPS))
+                    safetyTargets.push_back(c);
+            }
+        }
+        if (safetyTargets.empty() && master->IsAlive())
+            safetyTargets.push_back(master);
+
+        if (!safetyTargets.empty())
+        {
+            static const float ThresholdDistance = 1.5f;
+            Unit const* moveTarget = safetyTargets.size() == 1u ? safetyTargets.front() : safetyTargets[me->GetEntry() % safetyTargets.size()];
+            if (moveTarget->GetDistance(target) > ThresholdDistance && me->GetDistance(moveTarget) > ThresholdDistance * 2.0f)
+            {
+                float distanceMod = moveTarget->HasInArc(float(M_PI), target) ? 0.5f : -1.5f;
+                pos.Relocate(moveTarget->GetFirstCollisionPosition(ThresholdDistance * distanceMod, Position::NormalizeOrientation(moveTarget->GetAbsoluteAngle(target) - moveTarget->GetOrientation())));
+                force = true;
+                return;
+            }
+        }
+    }
+
     pos.Relocate(ppos);
     if (!me->IsWithinLOSInMap(target, VMAP::ModelIgnoreFlags::M2, LINEOFSIGHT_ALL_CHECKS))
         force = true;
@@ -8109,8 +8161,8 @@ bool bot_ai::OnGossipHello(Player* player, uint32 /*option*/)
             // Dinkle: Check for Sylvanas quest completion requirement
             if (me->GetName() == "Sylvanas" && !player->HasAchieved(762))
             {
-                player->GetSession()->SendNotification("You must earn the achievement 'Ambassador of the Horde' in order to hire Sylvanas.");
-                return false; 
+                ChatHandler(player->GetSession()).SendNotification("You must earn the achievement 'Ambassador of the Horde' in order to hire Sylvanas.");
+                return false;
             }
 
             std::ostringstream message1;
@@ -10710,6 +10762,17 @@ bool bot_ai::OnGossipSelect(Player* player, Creature* creature/* == me*/, uint32
                     break;
                 }
 
+                if (uint32 maxBotsPerAccount = BotMgr::GetMaxAccountBots())
+                {
+                    uint32 accountBotsCount = BotDataMgr::GetAccountBotsCount(player->GetSession()->GetAccountId());
+                    if (accountBotsCount >= maxBotsPerAccount)
+                    {
+                        ChatHandler ch(player->GetSession());
+                        ch.PSendSysMessage(LocalizedNpcText(player, BOT_TEXT_HIREFAIL_MAXBOTS_ACCOUNT).c_str(), accountBotsCount, maxBotsPerAccount);
+                        break;
+                    }
+                }
+
                 if (SetBotOwner(player))
                 {
                     if (_botclass == BOT_CLASS_SPHYNX)
@@ -12050,6 +12113,7 @@ void bot_ai::_autoLootCreatureGold(Creature* creature) const
 {
     Loot* loot = &creature->loot;
 
+    sScriptMgr->OnBeforeLootMoney(master, loot);
     loot->NotifyMoneyRemoved();
     Group const* gr = master->GetGroup();
     if (!gr)
@@ -16414,94 +16478,22 @@ void bot_ai::KilledUnit(Unit* u)
     }
 }
 
-void bot_ai::UnsummonCreature(Creature* creature, bool save)
+void bot_ai::UnsummonCreature(Creature* creature, bool /*save*/)
 {
     if (creature)
     {
-        bot_pet_ai* petai = creature->GetBotPetAI();
-
-        if (save && !petai)
-        {
-            LOG_WARN("npcbots", "bot_ai::Unsummon: Trying to save creature {} (id: {}) which isn't a bot pet! Unsummoning instead.", creature->GetName(), creature->GetEntry());
-            save = false;
-        }
-
-        if (!save)
-        {
-            if (!IAmFree() && !creature->IsInWorld() && master->GetSession()->isLogingOut() && master->IsInWorld())
-            {
-                if (creature->FindMap())
-                    creature->ResetMap();
-                creature->SetMap(master->GetMap());
-                master->GetMap()->AddToMap(creature);
-            }
-
-            ASSERT_NOTNULL(creature->ToTempSummon())->UnSummon();
-            return;
-        }
-
-        if (petai)
+        if (bot_pet_ai* petai = creature->GetBotPetAI())
         {
             petai->KillEvents(true);
             petai->canUpdate = false;
         }
 
-        creature->m_Events.KillAllEvents(false);
-        Map* petmap = creature->FindMap();
-        if (petmap)
-        {
-            if (creature->IsInWorld())
-            {
-                creature->RemoveFromWorld();
-                creature->BotStopMovement();
-                creature->RemoveAurasByType(SPELL_AURA_MOD_STUN);
-                creature->RemoveAurasByType(SPELL_AURA_MOD_FEAR);
-                creature->RemoveAurasByType(SPELL_AURA_MOD_CONFUSE);
-                creature->RemoveAurasByType(SPELL_AURA_MOD_ROOT);
-                creature->RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TELEPORTED);
-                creature->InterruptNonMeleeSpells(true);
-                creature->RemoveAllGameObjects();
-                creature->CombatStop();
-                creature->ClearComboPoints();
-                creature->ClearComboPointHolders();
-            }
-
-            if (creature->IsInGrid())
-                petmap->RemoveFromMap(creature, false);
-        }
+        ASSERT_NOTNULL(creature->ToTempSummon())->UnSummon();
     }
 }
 void bot_ai::UnsummonPet(bool save)
 {
     UnsummonCreature(botPet, save);
-}
-
-void bot_ai::ResummonCreature(Creature* creature)
-{
-    if (creature)
-    {
-        if (creature->FindMap())
-            creature->ResetMap();
-        creature->SetMap(me->GetMap());
-
-        Position pos;
-        bot_pet_ai* petai = creature->GetBotPetAI();
-        if (petai)
-            petai->CalculatePetsOwnerFollowPosition(pos);
-        else
-            pos.Relocate(me);
-
-        creature->Relocate(pos);
-        if (!creature->IsInGrid())
-            me->GetMap()->AddToMap(creature);
-
-        if (petai)
-            petai->canUpdate = true;
-    }
-}
-void bot_ai::ResummonPet()
-{
-    ResummonCreature(botPet);
 }
 
 void bot_ai::MoveInLineOfSight(Unit* /*u*/)
@@ -19153,7 +19145,6 @@ bool bot_ai::FinishTeleport(bool reset)
             this->Reset();
         //bot->SetAI(oldAI);
         //me->IsAIEnabled = true;
-        ResummonAll();
         canUpdate = true;
         outdoorsTimer = 0;
 

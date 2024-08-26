@@ -1793,11 +1793,6 @@ public:
             }
         }
 
-        void ResummonAll() override
-        {
-            ResummonPet();
-        }
-
         uint32 GetAIMiscValue(uint32 data) const override
         {
             switch (data)

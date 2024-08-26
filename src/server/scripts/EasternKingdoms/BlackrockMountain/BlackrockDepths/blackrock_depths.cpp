@@ -45,7 +45,7 @@ public:
     {
         if (!player->HasItemCount(11885)) // Check if the player has a Shadowforge Torch
         {
-            player->GetSession()->SendNotification("You need a Shadowforge Torch to use this.");
+            ChatHandler(player->GetSession()).SendNotification("You need a Shadowforge Torch to use this.");
             return true;
         }
 

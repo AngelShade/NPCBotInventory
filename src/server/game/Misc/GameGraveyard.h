@@ -54,6 +54,7 @@ public:
 
     typedef std::unordered_map<uint32, GraveyardStruct> GraveyardContainer;
 
+    void InitializeGraveyards();
     GraveyardStruct const* GetGraveyard(uint32 ID) const;
     GraveyardStruct const* GetGraveyard(const std::string& name) const;
     GraveyardStruct const* GetDefaultGraveyard(TeamId teamId);

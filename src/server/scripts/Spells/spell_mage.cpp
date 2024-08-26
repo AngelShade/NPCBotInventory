@@ -70,11 +70,11 @@ public:
     std::unordered_set<uint32> SPELL_ICE_LANCE = { 100241, 100242, 100243 };
 
     std::unordered_set<uint32> SPELL_FROSTBOLT = {
-        116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304, 27071, 27072, 38697, 42841, 42842, 844614
+        116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304, 27071, 27072, 38697, 42841, 42842
     };
 
     std::unordered_set<uint32> SPELL_FROSTFIREBOLT = {
-        44614, 47610
+        44614, 47610, 844614
     };
 
     void OnSpellCast(Player* player, Spell* spell, bool skipCheck) override
@@ -88,7 +88,7 @@ public:
             {
                 if (player->HasSpell(iceLanceSpell))
                 {
-                    if (rand() % 100 < 66)
+                    if (rand() % 100 < 50)
                     {
                         return;
                     }

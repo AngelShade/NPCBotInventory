@@ -99,6 +99,7 @@ void AddSC_npc_custom_generic();
 void AddSC_custom_hunter_spell_scripts();
 void AddSC_randomquestfixes();
 void AddSC_spell_mage_fire_blast_charges();
+void AddSC_spell_warr_thunderclap();
 
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
@@ -191,6 +192,7 @@ void AddCustomScripts()
     AddSC_custom_hunter_spell_scripts();
     AddSC_randomquestfixes();
     AddSC_spell_mage_fire_blast_charges();
+    AddSC_spell_warr_thunderclap();
 
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();

@@ -19,6 +19,7 @@
 #include "BattlefieldMgr.h"
 #include "Battleground.h"
 #include "CellImpl.h"
+#include "CharmInfo.h"
 #include "Common.h"
 #include "GameTime.h"
 #include "GridNotifiers.h"
@@ -7330,6 +7331,8 @@ void AuraEffect::HandleProcTriggerSpellAuraProc(AuraApplication* aurApp, ProcEve
                     case 20810:
                     {
                         DamageInfo const* dinfo = eventInfo.GetDamageInfo();
+                        if (!dinfo)
+                            return;
                         uint32 damage = dinfo->GetDamage();
                         if (!damage)
                             return;

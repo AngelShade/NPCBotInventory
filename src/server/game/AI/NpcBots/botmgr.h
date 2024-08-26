@@ -131,8 +131,8 @@ class AC_GAME_API BotMgr
         static bool IsBotHKAchievementsEnabled();
         static bool IsManaRegenCheatEnabled();
         static uint8 GetMaxClassBots();
-        //Dinkle
         static uint8 GetMaxDarkRangerBots();
+        static uint8 GetMaxAccountBots();
         static uint8 GetHealTargetIconFlags();
         static uint8 GetTankTargetIconFlags();
         static uint8 GetOffTankTargetIconFlags();

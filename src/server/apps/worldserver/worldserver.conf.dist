@@ -3288,6 +3288,15 @@ LFG.KickPreventionTimer = 900
 DungeonAccessRequirements.LFGLevelDBCOverride = 0
 
 #
+#    DungeonFinder.CastDeserter
+#
+#        Description: Cast Deserter to player who leave a dungeon prematurely
+#        Default:     1 - (Enabled, Blizzlike)
+#                     0 - (Disabled)
+
+DungeonFinder.CastDeserter = 1
+
+#
 ###################################################################################################
 
 ###################################################################################################
@@ -4480,6 +4489,14 @@ NpcBot.MaxBots = 39,39,39,39,39,39,39,39,39
 #        Default:     0 - no limit
 
 NpcBot.MaxBotsPerClass = 0
+
+#
+#    NpcBot.MaxBotsPerAccount
+#        Description: Maximum total number of bots players can hire per account.
+#        Default:     0 - no limit
+#                     9 - up to 9 bots total per account
+
+NpcBot.MaxBotsPerAccount = 0
 
 #
 #    NpcBot.Botgiver.FilterRaces

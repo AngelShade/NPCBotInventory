@@ -96,19 +96,19 @@ GraveyardStruct const* Graveyard::GetDefaultGraveyard(TeamId teamId)
 
 GraveyardStruct const* Graveyard::CreateTemporaryGraveyard(Player* player, TeamId teamId)
 {
-    static GraveyardStruct tempGraveyard;
+    static std::unique_ptr<GraveyardStruct> tempGraveyard;
 
-    // Set the temporary graveyard location to the player's current position
-    tempGraveyard.Map = player->GetMapId();
-    tempGraveyard.x = player->GetPositionX();
-    tempGraveyard.y = player->GetPositionY();
-    tempGraveyard.z = player->GetPositionZ();
-   // tempGraveyard.o = player->GetOrientation();
+    if (!tempGraveyard)
+        tempGraveyard = std::make_unique<GraveyardStruct>();
 
-    // Log the creation of a temporary graveyard
-    LOG_DEBUG("server.loading", "Creating temporary graveyard at player's location: Map {} coords ({}, {}, {})", tempGraveyard.Map, tempGraveyard.x, tempGraveyard.y, tempGraveyard.z);
+    tempGraveyard->Map = player->GetMapId();
+    tempGraveyard->x = player->GetPositionX();
+    tempGraveyard->y = player->GetPositionY();
+    tempGraveyard->z = player->GetPositionZ();
 
-    return &tempGraveyard;
+    LOG_DEBUG("server.loading", "Creating temporary graveyard at player's location: Map {} coords ({}, {}, {})", tempGraveyard->Map, tempGraveyard->x, tempGraveyard->y, tempGraveyard->z);
+
+    return tempGraveyard.get();
 }
 
 // Skip Archerus graveyards if the player isn't a Death Knight.
@@ -140,104 +140,72 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
         return GetDefaultGraveyard(teamId);
     }
 
-    // Variables for nearest graveyard in the same zone
-    bool foundInZone = false;
+    // Variables for nearest graveyards
     float nearestDistInZone = std::numeric_limits<float>::max();
-    GraveyardStruct const* nearestGraveyardInZone = nullptr;
-
-    // Variables for nearest graveyard on the same map
-    bool foundNear = false;
     float nearestDist = std::numeric_limits<float>::max();
-    GraveyardStruct const* nearestGraveyard = nullptr;
-
-    // Variables for nearest graveyard on entrance map for corpse map
-    bool foundEntr = false;
     float distEntr = std::numeric_limits<float>::max();
-    GraveyardStruct const* entryEntr = nullptr;
 
-    // Variable for graveyard on a different map
+    GraveyardStruct const* nearestGraveyardInZone = nullptr;
+    GraveyardStruct const* nearestGraveyard = nullptr;
+    GraveyardStruct const* entryEntr = nullptr;
     GraveyardStruct const* entryFar = nullptr;
 
-    // Loop through all graveyards
-    for (auto it = GraveyardStore.begin(); it != GraveyardStore.end(); ++it)
-    {
-        GraveyardData const& graveyardData = it->second;
-        GraveyardStruct const* graveyard = sGraveyard->GetGraveyard(graveyardData.safeLocId);
+    MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
 
+    // Loop through all graveyards
+    for (auto const& [zone, graveyardData] : GraveyardStore)
+    {
+        GraveyardStruct const* graveyard = sGraveyard->GetGraveyard(graveyardData.safeLocId);
         if (!graveyard || !graveyardData.IsNeutralOrFriendlyToTeam(teamId))
             continue;
 
-        // Skip Archerus graveyards if the player isn't a Death Knight.
+        // Skip Archerus graveyards if the player isn't a Death Knight
         if (player->getClass() != CLASS_DEATH_KNIGHT &&
             (graveyardData.safeLocId == GRAVEYARD_EBON_HOLD || graveyardData.safeLocId == GRAVEYARD_ARCHERUS))
         {
             continue;
         }
 
-        // Retrieve the zone ID of the graveyard's location
-        uint32 graveyardZoneId = sMapMgr->GetZoneId(player->GetPhaseMask(), graveyard->Map, graveyard->x, graveyard->y, graveyard->z);
-
         // Check if the graveyard is within the same zone
-        if (graveyardZoneId == zoneId)
+        uint32 graveyardZoneId = sMapMgr->GetZoneId(player->GetPhaseMask(), graveyard->Map, graveyard->x, graveyard->y, graveyard->z);
+        float dist2 = (graveyard->x - x) * (graveyard->x - x) + (graveyard->y - y) * (graveyard->y - y) + (graveyard->z - z) * (graveyard->z - z);
+
+        if (graveyardZoneId == zoneId && dist2 < nearestDistInZone)
         {
-            float dist2 = (graveyard->x - x) * (graveyard->x - x) + (graveyard->y - y) * (graveyard->y - y) + (graveyard->z - z) * (graveyard->z - z);
-            if (dist2 < nearestDistInZone)
-            {
-                nearestDistInZone = dist2;
-                nearestGraveyardInZone = graveyard;
-                foundInZone = true;
-            }
+            nearestDistInZone = dist2;
+            nearestGraveyardInZone = graveyard;
             continue;
         }
 
         // Check for map compatibility (e.g., dungeons, battlegrounds, raids)
-        if (mapId != graveyard->Map)
+        if (mapId != graveyard->Map && mapEntry && mapEntry->entrance_map == graveyard->Map)
         {
-            MapEntry const* mapEntry = sMapStore.LookupEntry(mapId);
-
-            if (!mapEntry || mapEntry->entrance_map < 0 || uint32(mapEntry->entrance_map) != graveyard->Map || (mapEntry->entrance_x == 0 && mapEntry->entrance_y == 0))
+            float distEntrance = (graveyard->x - mapEntry->entrance_x) * (graveyard->x - mapEntry->entrance_x) +
+                (graveyard->y - mapEntry->entrance_y) * (graveyard->y - mapEntry->entrance_y);
+            if (distEntrance < distEntr)
             {
-                entryFar = graveyard;
-                continue;
-            }
-
-            // Calculate distance (2D) at entrance map
-            float dist2 = (graveyard->x - mapEntry->entrance_x) * (graveyard->x - mapEntry->entrance_x) + (graveyard->y - mapEntry->entrance_y) * (graveyard->y - mapEntry->entrance_y);
-            if (foundEntr)
-            {
-                if (dist2 < distEntr)
-                {
-                    distEntr = dist2;
-                    entryEntr = graveyard;
-                }
-            }
-            else
-            {
-                foundEntr = true;
-                distEntr = dist2;
+                distEntr = distEntrance;
                 entryEntr = graveyard;
             }
+            continue;
         }
-        else
+
+        // Logic for nearest graveyard on the same map
+        if (mapId == graveyard->Map && dist2 < nearestDist)
         {
-            // Logic for nearest graveyard on the same map
-            float dist2 = (graveyard->x - x) * (graveyard->x - x) + (graveyard->y - y) * (graveyard->y - y) + (graveyard->z - z) * (graveyard->z - z);
-            if (dist2 < nearestDist)
-            {
-                nearestDist = dist2;
-                nearestGraveyard = graveyard;
-            }
+            nearestDist = dist2;
+            nearestGraveyard = graveyard;
         }
     }
 
     // Final selection logic: prioritize same zone, then same map, then entrance map
-    if (foundInZone)
+    if (nearestGraveyardInZone)
         return nearestGraveyardInZone;
-    else if (nearestGraveyard)
+    if (nearestGraveyard)
         return nearestGraveyard;
-    else if (entryEntr)
+    if (entryEntr)
         return entryEntr;
-    else if (entryFar)
+    if (entryFar)
         return entryFar;
 
     // Fallback to creating a temporary graveyard if no specific graveyard found
@@ -413,3 +381,23 @@ GraveyardStruct const* Graveyard::GetGraveyard(const std::string& name) const
 
     return alt;
 }
+//Dinkle: Not sure this is doing what it should. Ideally this is to initialize graveyard data so first repop doesn't lag.
+void Graveyard::InitializeGraveyards()
+{
+    for (auto const& [id, graveyard] : _graveyardStore)
+    {
+        sGraveyard->GetGraveyard(id);
+
+        uint32 zoneId = sMapMgr->GetZoneId(0, graveyard.Map, graveyard.x, graveyard.y, graveyard.z);
+
+        const MapEntry* mapEntry = sMapStore.LookupEntry(graveyard.Map);
+        if (mapEntry)
+        {
+            LOG_DEBUG("server.loading", "Graveyard: Accessing map entry for map ID {}", graveyard.Map);
+        }
+    }
+
+    LOG_INFO("server.loading", "Graveyards have been preloaded into memory.");
+}
+
+
