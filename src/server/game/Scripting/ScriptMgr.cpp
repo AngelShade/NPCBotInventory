@@ -34,26 +34,30 @@ namespace
     template<typename T>
     inline void SCR_CLEAR()
     {
-        for (auto const& [scriptID, script] : ScriptRegistry<T>::ScriptPointerList)
+        for (auto& [scriptID, script] : ScriptRegistry<T>::ScriptPointerList)
         {
-            // Null Check
             if (script == nullptr)
             {
-                LOG_ERROR("scripts", "Warning: Null script detected for scriptID: %d", scriptID);
+                LOG_ERROR("scripts", "Warning: Null script detected for scriptID: {}", scriptID);
                 continue;
             }
 
             try
             {
                 // Logging scriptID and pointer value
-                LOG_DEBUG("scripts", "Deleting script with scriptID: %d, Pointer: %p", scriptID, static_cast<void*>(script));
+                LOG_DEBUG("scripts", "Deleting script with scriptID: {}, Pointer: {}", scriptID, static_cast<void*>(script));
 
                 // Delete the script
                 delete script;
+                script = nullptr;
             }
             catch (const std::exception& e)
             {
-                LOG_ERROR("scripts", "Exception caught during deletion of scriptID: %d, Exception: %s", scriptID, e.what());
+                LOG_ERROR("scripts.unloading", "Failed to unload script with ID: {}. Exception: {}", scriptID, e.what());
+            }
+            catch (...)
+            {
+                LOG_ERROR("scripts.unloading", "Failed to unload script with ID: {}. Unknown error occurred.", scriptID);
             }
         }
 

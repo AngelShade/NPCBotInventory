@@ -2087,6 +2087,93 @@ Item* BotDataMgr::GenerateWanderingBotItem(uint8 slot, uint8 botclass, uint8 lev
     return nullptr;
 }
 
+Item* BotDataMgr::GenerateRandomBotItem(uint8 slot, uint8 botclass, uint8 level, uint32 minIlevel, uint32 maxIlevel, std::function<bool(ItemTemplate const*)>&& check)
+{
+    ASSERT(slot < BOT_INVENTORY_SIZE);
+    ASSERT(botclass < BOT_CLASS_END);
+    ASSERT(level <= DEFAULT_MAX_LEVEL + 4);
+
+    uint8 lvl = level;
+    ItemIdVector const* itemIdVec = &_botsWanderCreaturesSortedGear[botclass][slot][lvl / ITEM_SORTING_LEVEL_STEP];
+
+    // Iterate backwards if the item vector is empty, until a valid vector is found or lvl goes below the sorting step
+    while (itemIdVec->empty() && lvl > ITEM_SORTING_LEVEL_STEP)
+    {
+        lvl -= ITEM_SORTING_LEVEL_STEP;
+        itemIdVec = &_botsWanderCreaturesSortedGear[botclass][slot][lvl / ITEM_SORTING_LEVEL_STEP];
+    }
+
+    // Check if the vector is still empty after decrementing the level
+    if (!itemIdVec->empty())
+    {
+        ItemIdVector validVec;
+        validVec.reserve(itemIdVec->size());
+        for (uint32 iid : *itemIdVec)
+        {
+            ItemTemplate const* proto = sObjectMgr->GetItemTemplate(iid);
+
+            // Apply the item level constraints
+            if (proto->ItemLevel >= minIlevel && proto->ItemLevel <= maxIlevel && check(proto))
+            {
+                validVec.push_back(iid);
+            }
+        }
+
+        // If valid items were found within the level range, return one of them
+        if (!validVec.empty())
+        {
+            uint32 itemId = Acore::Containers::SelectRandomContainerElement(validVec);
+            if (Item* newItem = Item::CreateItem(itemId, 1, nullptr))
+            {
+                if (uint32 randomPropertyId = Item::GenerateItemRandomPropertyId(itemId))
+                {
+                    newItem->SetItemRandomProperties(randomPropertyId);
+                }
+
+                return newItem;
+            }
+        }
+    }
+
+    // If no valid items were found, attempt to fallback to lower item levels until something is generated
+    while (lvl > 1)
+    {
+        lvl -= ITEM_SORTING_LEVEL_STEP;
+        itemIdVec = &_botsWanderCreaturesSortedGear[botclass][slot][lvl / ITEM_SORTING_LEVEL_STEP];
+
+        if (!itemIdVec->empty())
+        {
+            ItemIdVector validVec;
+            validVec.reserve(itemIdVec->size());
+            for (uint32 iid : *itemIdVec)
+            {
+                ItemTemplate const* proto = sObjectMgr->GetItemTemplate(iid);
+
+                if (check(proto))
+                {
+                    validVec.push_back(iid);
+                }
+            }
+
+            if (!validVec.empty())
+            {
+                uint32 itemId = Acore::Containers::SelectRandomContainerElement(validVec);
+                if (Item* newItem = Item::CreateItem(itemId, 1, nullptr))
+                {
+                    if (uint32 randomPropertyId = Item::GenerateItemRandomPropertyId(itemId))
+                    {
+                        newItem->SetItemRandomProperties(randomPropertyId);
+                    }
+
+                    return newItem;
+                }
+            }
+        }
+    }
+
+    return nullptr;
+}
+
 bool BotDataMgr::GenerateWanderingBotItemEnchants(Item* item, uint8 slot, uint8 spec)
 {
     bool result = false;

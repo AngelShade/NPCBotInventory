@@ -994,9 +994,10 @@ public:
             if (dist > maxRangeLong)
                 return;
 
-            //KILL SHOT
+            // KILL SHOT
             if (IsSpellReady(KILL_SHOT_1, diff) && can_do_normal && HasRole(BOT_ROLE_DPS) &&
-                mytar->HasAuraState(AURA_STATE_HEALTHLESS_20_PERCENT))
+                (mytar->HasAuraState(AURA_STATE_HEALTHLESS_20_PERCENT) ||
+                    (me->HasAura(28755) && me->HasAura(3045))))
             {
                 if (doCast(mytar, GetSpell(KILL_SHOT_1)))
                     return;

@@ -100,6 +100,8 @@ void AddSC_custom_hunter_spell_scripts();
 void AddSC_randomquestfixes();
 void AddSC_spell_mage_fire_blast_charges();
 void AddSC_spell_warr_thunderclap();
+void AddSC_ursa_lair_screature();
+void AddSC_boss_thermaplugg();
 
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
@@ -193,6 +195,8 @@ void AddCustomScripts()
     AddSC_randomquestfixes();
     AddSC_spell_mage_fire_blast_charges();
     AddSC_spell_warr_thunderclap();
+    AddSC_ursa_lair_screature();
+    AddSC_boss_thermaplugg();
 
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();

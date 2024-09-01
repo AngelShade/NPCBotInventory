@@ -1359,9 +1359,9 @@ public:
                     return;
             }
 
-            //HAMMER OF WRATH
+            // HAMMER OF WRATH
             if (IsSpellReady(HAMMER_OF_WRATH_1, diff) && can_do_holy && HasRole(BOT_ROLE_DPS) && Rand() < 80 &&
-                mytar->HasAuraState(AURA_STATE_HEALTHLESS_20_PERCENT) && dist < 30)
+                (mytar->HasAuraState(AURA_STATE_HEALTHLESS_20_PERCENT) || (me->HasAura(888054) && me->HasAura(31884))) && dist < 30)
             {
                 if (doCast(mytar, GetSpell(HAMMER_OF_WRATH_1)))
                     return;

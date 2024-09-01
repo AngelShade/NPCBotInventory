@@ -1225,11 +1225,12 @@ class spell_pal_crusader_strike : public SpellScript
             caster->CastCustomSpell(target, 810947, &shadowDamage, nullptr, nullptr, true);
         }
 
-        // Tier 3: Heal for 20% of the damage dealt
+        // Tier 3: Heal for 15% of the damage dealt
         if (caster->HasAura(888053))
         {
-        int32 healAmount = CalculatePct(damage, 20);
-        caster->CastCustomSpell(caster, 845470, &healAmount, nullptr, nullptr, true); // 45470 is the heal spell for Death Strike
+        int32 healAmount = CalculatePct(damage, 15);
+        int32 manaAmount = CalculatePct(damage, 5);
+        caster->CastCustomSpell(caster, 845470, &healAmount, nullptr, &manaAmount, true); // 45470 is the heal spell for Death Strike
         }
     }
 

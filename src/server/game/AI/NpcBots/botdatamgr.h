@@ -200,6 +200,7 @@ class BotDataMgr
         static void CreateWanderingBotsSortedGear();
         static ItemPerBotClassMap const& GetWanderingBotsSortedGearMap();
         static Item* GenerateWanderingBotItem(uint8 slot, uint8 botclass, uint8 level, std::function<bool(ItemTemplate const*)>&& check);
+        static Item* GenerateRandomBotItem(uint8 slot, uint8 botclass, uint8 level, uint32 minIlevel, uint32 maxIlevel, std::function<bool(ItemTemplate const*)>&& check);
         static bool GenerateWanderingBotItemEnchants(Item* item, uint8 slot, uint8 spec);
         static CreatureTemplate const* GetBotExtraCreatureTemplate(uint32 entry);
         static EquipmentInfo const* GetBotEquipmentInfo(uint32 entry);

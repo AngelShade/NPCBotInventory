@@ -352,27 +352,31 @@ public:
                     Creature const* bot = BotDataMgr::FindBot(entry);
                     if (!bot)
                     {
-                        //possible but still
+                        // Possible but still
                         LOG_ERROR("entities.unit", "HIRE_NBOT_ENTRY: bot {} not found!", entry);
                         break;
                     }
 
-                    bot_ai const* ai = bot->GetBotAI();
+                    bot_ai* ai = bot->GetBotAI();
                     if (bot->IsInCombat() || !bot->IsAlive() || bot_ai::CCed(bot) ||
                         bot->HasUnitState(UNIT_STATE_CASTING) || ai->GetBotOwnerGuid() || bot->HasAura(BERSERK))
                     {
-                        //TC_LOG_ERROR("entities.unit", "HIRE_NBOT_ENTRY: bot %u (%s) is unavailable all of the sudden!", entry);
                         std::ostringstream failMsg;
                         failMsg << bot->GetName() << bot_ai::LocalizedNpcText(player, BOT_TEXT_BOTGIVER__BOT_BUSY);
                         WhisperTo(player, me, failMsg.str().c_str());
                         break;
                     }
 
-                    //laways returns true
-                    bot->GetBotAI()->OnGossipSelect(player, me, GOSSIP_SENDER_HIRE, GOSSIP_ACTION_INFO_DEF);
+                    // Always returns true
+                    ai->OnGossipSelect(player, me, GOSSIP_SENDER_HIRE, GOSSIP_ACTION_INFO_DEF);
 
                     if (player->HaveBot() && player->GetBotMgr()->GetBot(bot->GetGUID()))
+                    {
                         WhisperTo(player, me, bot_ai::LocalizedNpcText(player, BOT_TEXT_BOTGIVER_HIRESUCCESS).c_str());
+
+                        // Initialize and equip gear for the hired bot
+                        ai->ApplyBotRandomEquip();
+                    }
 
                     break;
                 }
