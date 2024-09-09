@@ -564,7 +564,7 @@ public:
 
         void KilledUnit(Unit* who) override
         {
-            if (who->GetTypeId() == TYPEID_PLAYER)
+            if (who->IsPlayer())
                 Talk(TEXT_SLAY);
         }
 
@@ -580,7 +580,7 @@ public:
 
         bool CanAIAttack(Unit const* t) const override
         {
-            if (t->GetTypeId() == TYPEID_PLAYER)
+            if (t->IsPlayer())
                 return !t->HasAura(SPELL_FLASH_FREEZE_TRAPPED_PLAYER);
             else if (t->GetTypeId() == TYPEID_UNIT)
                 return !t->HasAura(SPELL_FLASH_FREEZE_TRAPPED_NPC);
@@ -706,9 +706,9 @@ public:
                 {
                     if (Unit* s = me->ToTempSummon()->GetSummonerUnit())
                     {
-                        if ((s->GetTypeId() == TYPEID_PLAYER && !s->HasAura(SPELL_FLASH_FREEZE_TRAPPED_PLAYER)) || (s->GetTypeId() == TYPEID_UNIT && !s->HasAura(SPELL_FLASH_FREEZE_TRAPPED_NPC)))
+                        if ((s->IsPlayer() && !s->HasAura(SPELL_FLASH_FREEZE_TRAPPED_PLAYER)) || (s->GetTypeId() == TYPEID_UNIT && !s->HasAura(SPELL_FLASH_FREEZE_TRAPPED_NPC)))
                             me->DespawnOrUnsummon(2000);
-                        else if (s->GetTypeId() == TYPEID_PLAYER)
+                        else if (s->IsPlayer())
                             if (InstanceScript* instanceScript = me->GetInstanceScript())
                                 if (instanceScript->GetData(TYPE_HODIR) == NOT_STARTED)
                                 {
@@ -1215,7 +1215,7 @@ class spell_hodir_biting_cold_main_aura : public AuraScript
     {
         if ((aurEff->GetTickNumber() % 4) == 0)
             if (Unit* target = GetTarget())
-                if (target->GetTypeId() == TYPEID_PLAYER
+                if (target->IsPlayer()
                     && !target->isMoving()
                     && !target->HasAura(SPELL_BITING_COLD_PLAYER_AURA)
                     && !target->HasAura(SPELL_MAGE_TOASTY_FIRE_AURA))
@@ -1361,7 +1361,7 @@ class spell_hodir_flash_freeze_aura : public AuraScript
             if (!target || !caster || caster->GetTypeId() != TYPEID_UNIT)
                 return;
 
-            if (Aura* aur = target->GetAura(target->GetTypeId() == TYPEID_PLAYER ? SPELL_FLASH_FREEZE_TRAPPED_PLAYER : SPELL_FLASH_FREEZE_TRAPPED_NPC))
+            if (Aura* aur = target->GetAura(target->IsPlayer() ? SPELL_FLASH_FREEZE_TRAPPED_PLAYER : SPELL_FLASH_FREEZE_TRAPPED_NPC))
             {
                 if (Unit* caster2 = aur->GetCaster())
                 {
@@ -1373,7 +1373,7 @@ class spell_hodir_flash_freeze_aura : public AuraScript
                 target->CastSpell(target, SPELL_FLASH_FREEZE_INSTAKILL, true);
                 return;
             }
-            if (target->GetTypeId() == TYPEID_PLAYER)
+            if (target->IsPlayer())
             {
                 caster->ToCreature()->AI()->SetData(1, 1);
                 if( Creature* c = target->SummonCreature(NPC_FLASH_FREEZE_PLR, target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), 0.0f, TEMPSUMMON_TIMED_OR_CORPSE_DESPAWN, 5 * 60 * 1000) )
@@ -1413,7 +1413,7 @@ class spell_hodir_storm_power_aura : public AuraScript
     void HandleAfterEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         if (Unit* target = GetTarget())
-            if (target->GetTypeId() == TYPEID_PLAYER)
+            if (target->IsPlayer())
                 target->ToPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET2, GetId(), 0, GetCaster());
     }
 
@@ -1453,7 +1453,7 @@ class spell_hodir_toasty_fire_aura : public AuraScript
     void HandleAfterEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         if (Unit* target = GetTarget())
-            if (target->GetTypeId() == TYPEID_PLAYER)
+            if (target->IsPlayer())
                 target->ToPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET2, SPELL_MAGE_TOASTY_FIRE_AURA, 0, GetCaster());
     }
 
@@ -1470,7 +1470,7 @@ class spell_hodir_starlight_aura : public AuraScript
     void HandleAfterEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         if (Unit* target = GetTarget())
-            if (target->GetTypeId() == TYPEID_PLAYER)
+            if (target->IsPlayer())
                 target->ToPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_BE_SPELL_TARGET2, SPELL_DRUID_STARLIGHT_AREA_AURA, 0, GetCaster());
     }
 

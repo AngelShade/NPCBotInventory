@@ -520,4 +520,3 @@ void AddSC_boss_shade_of_aran()
     RegisterSpellScript(spell_flamewreath_aura);
     new at_karazhan_atiesh_aran();
 }
-

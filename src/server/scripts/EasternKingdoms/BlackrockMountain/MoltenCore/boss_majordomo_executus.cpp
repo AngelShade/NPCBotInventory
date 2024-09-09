@@ -676,4 +676,3 @@ void AddSC_boss_majordomo()
     RegisterSpellScript(spell_majordomo_separation_anxiety_aura);
     RegisterSpellScript(spell_summon_ragnaros);
 }
-

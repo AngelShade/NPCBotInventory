@@ -316,4 +316,3 @@ void AddSC_instance_uldaman()
     new spell_uldaman_stoned();
     new spell_uldaman_boss_agro_archaedas();
 }
-

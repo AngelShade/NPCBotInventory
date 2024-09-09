@@ -729,4 +729,3 @@ void AddSC_instance_sunken_temple()
     new boss_shade_of_eranikus();
     new npc_nightmare_egg();
 }
-

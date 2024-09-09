@@ -1090,4 +1090,3 @@ void AddSC_warrior_spell_scripts()
     RegisterSpellScript(spell_war_commanding_shout);
     RegisterSpellScript(spell_war_whirlwind);
 }
-

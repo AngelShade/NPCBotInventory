@@ -271,7 +271,7 @@ class spell_hun_generic_scaling : public AuraScript
             amount = CalculatePct(std::max<int32>(0, owner->GetTotalAttackPowerValue(RANGED_ATTACK)), modifier);
 
             // xinef: Update appropriate player field
-            if (owner->GetTypeId() == TYPEID_PLAYER)
+            if (owner->IsPlayer())
                 owner->SetUInt32Value(PLAYER_PET_SPELL_POWER, (uint32)amount);
         }
     }
@@ -362,7 +362,7 @@ class spell_hun_aspect_of_the_beast : public AuraScript
 
     bool Load() override
     {
-        return GetCaster() && GetCaster()->GetTypeId() == TYPEID_PLAYER;
+        return GetCaster() && GetCaster()->IsPlayer();
     }
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
@@ -711,7 +711,7 @@ class spell_hun_readiness : public SpellScript
 
     bool Load() override
     {
-        return GetCaster()->GetTypeId() == TYPEID_PLAYER;
+        return GetCaster()->IsPlayer();
     }
 
     void HandleDummy(SpellEffIndex /*effIndex*/)
@@ -764,7 +764,7 @@ class spell_hun_scatter_shot : public SpellScript
 
     bool Load() override
     {
-        return GetCaster()->GetTypeId() == TYPEID_PLAYER;
+        return GetCaster()->IsPlayer();
     }
 
     void HandleDummy(SpellEffIndex /*effIndex*/)
@@ -994,7 +994,7 @@ class spell_hun_misdirection_proc : public AuraScript
     }
 };
 
-// 781 - Disengage
+// 781 - Disengage: Dinkle: Allow out of combat
 class spell_hun_disengage : public SpellScript
 {
     PrepareSpellScript(spell_hun_disengage);
@@ -1003,7 +1003,9 @@ class spell_hun_disengage : public SpellScript
     {
         Unit* caster = GetCaster();
         if (caster->GetTypeId() == TYPEID_PLAYER)
+        {
             return SPELL_CAST_OK;
+        }
 
         return SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW;
     }
@@ -1459,4 +1461,3 @@ void AddSC_hunter_spell_scripts()
     new HunterTalents();
     RegisterSpellScript(spell_hun_target_self_and_pet);
 }
-

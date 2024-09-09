@@ -348,4 +348,3 @@ void AddSC_boss_vaelastrasz()
     new boss_vaelastrasz();
     RegisterSpellScript(spell_vael_burning_adrenaline);
 }
-

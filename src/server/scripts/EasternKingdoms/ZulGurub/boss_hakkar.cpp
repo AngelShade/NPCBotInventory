@@ -636,4 +636,3 @@ void AddSC_boss_hakkar()
     RegisterSpellScript(spell_blood_siphon);
     RegisterSpellScript(spell_hakkar_power_down);
 }
-

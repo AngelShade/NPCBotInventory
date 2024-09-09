@@ -231,7 +231,7 @@ class spell_pal_divine_intervention : public AuraScript
 
     void HandleRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
-        if (!GetTarget()->IsInCombat() && GetTarget()->GetTypeId() == TYPEID_PLAYER)
+        if (!GetTarget()->IsInCombat() && GetTarget()->IsPlayer())
             GetTarget()->RemoveAurasDueToSpell(GetTarget()->ToPlayer()->GetTeamId() == TEAM_ALLIANCE ? 57723 : 57724);
     }
 
@@ -388,7 +388,7 @@ private:
             return true;
         //end npcbot
 
-        return GetUnitOwner()->GetTypeId() == TYPEID_PLAYER;
+        return GetUnitOwner()->IsPlayer();
     }
 
     void CalculateAmount(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
@@ -646,7 +646,7 @@ class spell_pal_divine_sacrifice : public AuraScript
                 return true;
             }
             //end npcbot
-            if (caster->GetTypeId() == TYPEID_PLAYER)
+            if (caster->IsPlayer())
             {
                 if (caster->ToPlayer()->GetGroup())
                     groupSize = caster->ToPlayer()->GetGroup()->GetMembersCount();
@@ -1221,7 +1221,7 @@ class spell_pal_crusader_strike : public SpellScript
         // Tier 3: Deal additional Shadow damage if caster has aura 888052
         if (caster->HasAura(888052))
         {
-            int32 shadowDamage = CalculatePct(damage, 30); // 30% of the damage dealt as Shadow damage
+            int32 shadowDamage = CalculatePct(damage, 25); // 25% of the damage dealt as Shadow damage
             caster->CastCustomSpell(target, 810947, &shadowDamage, nullptr, nullptr, true);
         }
 
@@ -1361,4 +1361,3 @@ void AddSC_paladin_spell_scripts()
     RegisterSpellScript(spell_pal_seal_of_vengeance);
     new dual_crusader();
 }
-

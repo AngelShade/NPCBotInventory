@@ -199,4 +199,3 @@ void AddSC_boss_huhuran()
     RegisterSpellScript(spell_huhuran_wyvern_sting);
     RegisterSpellScript(spell_huhuran_poison_bolt);
 }
-

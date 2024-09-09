@@ -216,4 +216,3 @@ void AddSC_boss_kazrogal()
     RegisterHyjalAI(boss_kazrogal);
     RegisterSpellAndAuraScriptPair(spell_mark_of_kazrogal, spell_mark_of_kazrogal_aura);
 }
-

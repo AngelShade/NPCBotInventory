@@ -573,4 +573,3 @@ void AddSC_boss_ragnaros()
     RegisterSpellScript(spell_ragnaros_lava_burst_randomizer);
     RegisterSpellScript(spell_ragnaros_summon_sons_of_flame);
 }
-

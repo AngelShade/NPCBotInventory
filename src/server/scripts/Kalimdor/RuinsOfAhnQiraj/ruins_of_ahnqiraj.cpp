@@ -296,4 +296,3 @@ void AddSC_ruins_of_ahnqiraj()
     new mob_flesh_hunter();
     RegisterSpellScript(spell_drain_mana);
 }
-

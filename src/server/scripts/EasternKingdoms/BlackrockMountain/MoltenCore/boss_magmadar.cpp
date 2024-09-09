@@ -219,4 +219,3 @@ void AddSC_boss_magmadar()
     // Spells
     RegisterSpellScript(spell_magmadar_lava_bomb);
 }
-

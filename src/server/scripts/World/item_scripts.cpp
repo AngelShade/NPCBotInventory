@@ -214,4 +214,3 @@ void AddSC_item_scripts()
     new item_captured_frog();
     new item_generic_limit_chance_above_60();
 }
-

@@ -54,7 +54,7 @@ struct npc_pet_pri_lightwell : public TotemAI
         TotemAI::InitializeAI();
     }
 };
-
+//Dinkle improvements
 struct npc_pet_pri_shadowfiend : public PetAI
 {
     npc_pet_pri_shadowfiend(Creature* creature) : PetAI(creature) { }
@@ -62,19 +62,46 @@ struct npc_pet_pri_shadowfiend : public PetAI
     void Reset() override
     {
         PetAI::Reset();
+
         if (!me->HasAura(SPELL_PRIEST_SHADOWFIEND_DODGE))
             me->AddAura(SPELL_PRIEST_SHADOWFIEND_DODGE, me);
 
         if (Unit* target = me->SelectNearestTarget(15.0f))
+        {
             AttackStart(target);
+            me->SetInCombatWith(target);
+           // me->CastSpell(target, 36554, true);
+        }
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        PetAI::UpdateAI(diff);
+
+        if (!UpdateVictim())
+            return;
+
+        if (me->GetVictim())
+        {
+            if (!me->IsInCombat())
+                AttackStart(me->GetVictim());
+
+            DoMeleeAttackIfReady();
+        }
     }
 
     void JustDied(Unit* /*killer*/) override
     {
         if (me->IsSummon())
+        {
             if (Unit* owner = me->ToTempSummon()->GetSummonerUnit())
+            {
                 if (owner->HasAura(SPELL_PRIEST_GLYPH_OF_SHADOWFIEND))
+                {
                     owner->CastSpell(owner, SPELL_PRIEST_GLYPH_OF_SHADOWFIEND_MANA, true);
+                }
+            }
+        }
     }
 };
 

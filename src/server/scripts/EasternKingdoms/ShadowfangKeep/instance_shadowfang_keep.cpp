@@ -274,4 +274,3 @@ void AddSC_instance_shadowfang_keep()
     new spell_shadowfang_keep_forsaken_skills();
     new spell_abercrombie_unlock();
 }
-

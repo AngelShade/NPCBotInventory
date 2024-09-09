@@ -223,7 +223,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
 
         if (!sCreatureTextMgr->TextExist(talker->GetEntry(), uint8(e.action.talk.textGroupID)))
         {
-           // LOG_ERROR("sql.sql", "SmartScript::ProcessAction: SMART_ACTION_TALK: EntryOrGuid {} SourceType {} EventType {} TargetType {} using non-existent Text id {} for talker {}, ignored.", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetTargetType(), e.action.talk.textGroupID, talker->GetEntry());
+            LOG_ERROR("sql.sql", "SmartScript::ProcessAction: SMART_ACTION_TALK: EntryOrGuid {} SourceType {} EventType {} TargetType {} using non-existent Text id {} for talker {}, ignored.", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetTargetType(), e.action.talk.textGroupID, talker->GetEntry());
             break;
         }
 
@@ -2064,21 +2064,21 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
     {
         for (WorldObject* target : targets)
             if (IsCreature(target))
-                target->ToUnit()->SetUInt32Value(UNIT_NPC_FLAGS, e.action.unitFlag.flag);
+                target->ToUnit()->ReplaceAllNpcFlags(NPCFlags(e.action.unitFlag.flag));
         break;
     }
     case SMART_ACTION_ADD_NPC_FLAG:
     {
         for (WorldObject* target : targets)
             if (IsCreature(target))
-                target->ToUnit()->SetFlag(UNIT_NPC_FLAGS, e.action.unitFlag.flag);
+                target->ToUnit()->SetNpcFlag(NPCFlags(e.action.unitFlag.flag));
         break;
     }
     case SMART_ACTION_REMOVE_NPC_FLAG:
     {
         for (WorldObject* target : targets)
             if (IsCreature(target))
-                target->ToUnit()->RemoveFlag(UNIT_NPC_FLAGS, e.action.unitFlag.flag);
+                target->ToUnit()->RemoveNpcFlag(NPCFlags(e.action.unitFlag.flag));
         break;
     }
     case SMART_ACTION_CROSS_CAST:
@@ -2943,15 +2943,64 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         }
         break;
     }
-    case SMART_ACTION_DISABLE:
+    case SMART_ACTION_SCRIPTED_SPAWN:
     {
-        for (WorldObject* target : targets)
+        // Enable Scripted Spawns
+        switch (e.action.scriptSpawn.state)
         {
-            if (IsUnit(target))
+        case 0: // Disable Respawn
+        {
+            for (WorldObject* target : targets)
             {
-                target->ToUnit()->SetImmuneToAll(!e.action.disable.state);
-                target->ToUnit()->SetVisible(e.action.disable.state);
+                if (Creature* c = target->ToCreature())
+                {
+                    CAST_AI(SmartAI, c->AI())->SetCanRespawn(false);
+                    if (!e.action.scriptSpawn.dontDespawn)
+                        c->DespawnOrUnsummon();
+                }
             }
+            break;
+        }
+        case 1: // Respawn Once
+        {
+            for (WorldObject* target : targets)
+            {
+                if (Creature* c = target->ToCreature())
+                {
+                    CAST_AI(SmartAI, c->AI())->SetCanRespawn(true);
+                    c->Respawn(true);
+                    CAST_AI(SmartAI, c->AI())->SetCanRespawn(false);
+                }
+            }
+            break;
+        }
+        case 2: // Enable Respawning
+        {
+            for (WorldObject* target : targets)
+            {
+                if (Creature* c = target->ToCreature())
+                {
+                    CAST_AI(SmartAI, c->AI())->SetCanRespawn(true);
+
+                    // If 0, respawn immediately
+                    if (e.action.scriptSpawn.spawnTimerMax)
+                        c->SetRespawnTime(urand(e.action.scriptSpawn.spawnTimerMin, e.action.scriptSpawn.spawnTimerMax));
+                    else
+                        c->Respawn(true);
+
+                    // If 0, use DB values
+                    if (e.action.scriptSpawn.respawnDelay)
+                        c->SetRespawnDelay(e.action.scriptSpawn.respawnDelay);
+
+                    // If 0, use default
+                    if (e.action.scriptSpawn.corpseDelay)
+                        c->SetCorpseDelay(e.action.scriptSpawn.corpseDelay);
+                }
+            }
+            break;
+        }
+        default:
+            break;
         }
         break;
     }
@@ -5223,12 +5272,12 @@ WorldObject* SmartScript::GetLastInvoker(WorldObject* invoker) const
 
 bool SmartScript::IsUnit(WorldObject* obj)
 {
-    return obj && (obj->GetTypeId() == TYPEID_UNIT || obj->GetTypeId() == TYPEID_PLAYER);
+    return obj && (obj->GetTypeId() == TYPEID_UNIT || obj->IsPlayer());
 }
 
 bool SmartScript::IsPlayer(WorldObject* obj)
 {
-    return obj && obj->GetTypeId() == TYPEID_PLAYER;
+    return obj && obj->IsPlayer();
 }
 
 bool SmartScript::IsCreature(WorldObject* obj)

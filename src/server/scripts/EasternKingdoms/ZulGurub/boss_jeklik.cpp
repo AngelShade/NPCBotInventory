@@ -451,4 +451,3 @@ void AddSC_boss_jeklik()
     RegisterCreatureAI(npc_batrider);
     RegisterSpellScript(spell_batrider_bomb);
 }
-

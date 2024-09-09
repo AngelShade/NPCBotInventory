@@ -312,4 +312,3 @@ void AddSC_boss_broodlord()
     new go_suppression_device();
     RegisterSpellScript(spell_suppression_aura);
 }
-

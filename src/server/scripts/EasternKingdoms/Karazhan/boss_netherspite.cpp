@@ -142,7 +142,7 @@ struct boss_netherspite : public BossAI
                     }
                 }
                 // buff the target
-                if (target->GetTypeId() == TYPEID_PLAYER)
+                if (target->IsPlayer())
                 {
                     target->AddAura(PlayerBuff[j], target);
                 }
@@ -170,7 +170,7 @@ struct boss_netherspite : public BossAI
                     }
                 }
                 // aggro target if Red Beam
-                if (j == RED_PORTAL && me->GetVictim() != target && target->GetTypeId() == TYPEID_PLAYER)
+                if (j == RED_PORTAL && me->GetVictim() != target && target->IsPlayer())
                 {
                     me->GetThreatMgr().AddThreat(target, 100000.0f + DoGetThreat(me->GetVictim()));
                 }
@@ -347,4 +347,3 @@ void AddSC_boss_netherspite()
     RegisterKarazhanCreatureAI(boss_netherspite);
     RegisterSpellScript(spell_nether_portal_perseverence);
 }
-

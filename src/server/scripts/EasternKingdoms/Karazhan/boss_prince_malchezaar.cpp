@@ -398,4 +398,3 @@ void AddSC_boss_malchezaar()
     RegisterKarazhanCreatureAI(npc_netherspite_infernal);
     RegisterSpellScript(spell_malchezaar_enfeeble);
 }
-

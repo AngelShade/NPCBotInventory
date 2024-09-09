@@ -509,4 +509,3 @@ void AddSC_bug_trio()
     RegisterSpellScript(spell_vem_knockback);
     RegisterSpellScript(spell_vem_vengeance);
 }
-

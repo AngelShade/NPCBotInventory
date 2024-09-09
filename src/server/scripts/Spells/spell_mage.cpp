@@ -59,72 +59,6 @@ enum MageSpells
     SPELL_TOUCH_OF_THE_MAGI_AURA                 = 844457
 };
 
-
-
-class Icicles : public PlayerScript
-{
-public:
-    Icicles() : PlayerScript("Icicles") {}
-
-    uint32 SPELL_AURA_FROST_STACK = 100240;
-    std::unordered_set<uint32> SPELL_ICE_LANCE = { 100241, 100242, 100243 };
-
-    std::unordered_set<uint32> SPELL_FROSTBOLT = {
-        116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304, 27071, 27072, 38697, 42841, 42842
-    };
-
-    std::unordered_set<uint32> SPELL_FROSTFIREBOLT = {
-        44614, 47610, 844614
-    };
-
-    void OnSpellCast(Player* player, Spell* spell, bool skipCheck) override
-    {
-        uint32 spellId = spell->GetSpellInfo()->Id;
-
-        if (SPELL_FROSTBOLT.find(spellId) != SPELL_FROSTBOLT.end() ||
-            SPELL_FROSTFIREBOLT.find(spellId) != SPELL_FROSTFIREBOLT.end())
-        {
-            for (auto iceLanceSpell : SPELL_ICE_LANCE)
-            {
-                if (player->HasSpell(iceLanceSpell))
-                {
-                    if (rand() % 100 < 50)
-                    {
-                        return;
-                    }
-
-                    Aura* aura = player->GetAura(SPELL_AURA_FROST_STACK);
-                    if (!aura)
-                    {
-                        player->AddAura(SPELL_AURA_FROST_STACK, player);
-                    }
-                    else if (aura->GetStackAmount() < 6)  
-                    {
-                        aura->ModStackAmount(1);
-                    }
-                    break;
-                }
-            }
-        }
-        else if (SPELL_ICE_LANCE.find(spellId) != SPELL_ICE_LANCE.end())
-        {
-            Aura* aura = player->GetAura(SPELL_AURA_FROST_STACK);
-            if (!aura || aura->GetStackAmount() < 6)
-            {
-                spell->cancel();
-                return;
-            }
-
-            player->RemoveAura(SPELL_AURA_FROST_STACK);
-        }
-    }
-};
-
-void AddSC_Icicles()
-{
-    new Icicles();
-}
-
 class AlterTime : public PlayerScript
 {
 public:
@@ -450,7 +384,7 @@ class spell_mage_pet_scaling : public AuraScript
             amount = CalculatePct(std::max<int32>(0, frost), 33);
 
             // xinef: Update appropriate player field
-            if (owner->GetTypeId() == TYPEID_PLAYER)
+            if (owner->IsPlayer())
                 owner->SetUInt32Value(PLAYER_PET_SPELL_POWER, (uint32)amount);
         }
     }
@@ -642,7 +576,7 @@ class spell_mage_cold_snap : public SpellScript
 
     bool Load() override
     {
-        return GetCaster()->GetTypeId() == TYPEID_PLAYER;
+        return GetCaster()->IsPlayer();
     }
 
     void HandleDummy(SpellEffIndex /*effIndex*/)
@@ -1271,6 +1205,4 @@ void AddSC_mage_spell_scripts()
     RegisterSpellScript(spell_mage_fingers_of_frost_proc_aura);
     RegisterSpellScript(spell_mage_fingers_of_frost_proc);
     AddSC_AlterTime();
-    AddSC_Icicles();
 }
-
