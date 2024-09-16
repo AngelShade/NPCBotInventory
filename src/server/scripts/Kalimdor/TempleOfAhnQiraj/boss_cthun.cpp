@@ -172,6 +172,7 @@ struct boss_eye_of_cthun : public BossAI
             pPortal->SetReactState(REACT_PASSIVE);
 
         BossAI::Reset();
+        summons.DespawnAll();
     }
 
     void JustDied(Unit* /*killer*/) override

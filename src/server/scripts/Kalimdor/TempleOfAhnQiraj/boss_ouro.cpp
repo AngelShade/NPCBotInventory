@@ -206,7 +206,7 @@ struct boss_ouro : public BossAI
         CastGroundRupture();
         scheduler.Schedule(20s, GROUP_EMERGED, [this](TaskContext context)
                 {
-                    if (Unit* target = SelectTarget(SelectTargetMethod::MaxThreat, 0, 0.0f, true))
+                    if (Unit* target = SelectTarget(SelectTargetMethod::MaxThreat, 0, 0.0f, false))
                     {
                         me->SetTarget(target->GetGUID());
                     }
@@ -298,7 +298,10 @@ struct boss_ouro : public BossAI
     {
         summons.DespawnAll();
 
+        // Cast any self-spell or effect as needed (e.g., 875167)
         DoCastSelf(875167, true);
+
+        // Reward players with challenge rewards
         Map::PlayerList const& players = me->GetMap()->GetPlayers();
         for (auto const& playerPair : players)
         {
@@ -308,6 +311,17 @@ struct boss_ouro : public BossAI
                 DistributeChallengeRewards(player, me, 1, false);
             }
         }
+
+        // Despawn NPC with ID 15957
+        std::list<Creature*> npcList;
+        me->GetCreatureListWithEntryInGrid(npcList, 15957, 200.0f); // Search for NPCs with ID 15957 within a 100-yard radius
+
+        for (Creature* npc : npcList)
+        {
+                npc->DespawnOrUnsummon();
+        }
+
+        BossAI::JustDied(killer); 
     }
 
 protected:

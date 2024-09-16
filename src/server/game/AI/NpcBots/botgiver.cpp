@@ -12,6 +12,7 @@
 #include "ScriptedGossip.h"
 #include "ScriptMgr.h"
 #include "botdatamgr.h"
+#include "Config.h"
 
 using namespace lfg;
 /*
@@ -374,8 +375,16 @@ public:
                     {
                         WhisperTo(player, me, bot_ai::LocalizedNpcText(player, BOT_TEXT_BOTGIVER_HIRESUCCESS).c_str());
 
-                        // Initialize and equip gear for the hired bot
-                        ai->ApplyBotRandomEquip();
+                        // Check if the configuration allows for random equipment application
+                        if (sConfigMgr->GetBoolDefault("Dinkle.Bot.ApplyRandomEquip", true))
+                        {
+                            // Initialize and equip gear for the hired bot
+                            ai->ApplyBotRandomEquip();
+                        }
+                        else
+                        {
+                            WhisperTo(player, me, "Random bot equipment application is disabled.");
+                        }
                     }
 
                     break;

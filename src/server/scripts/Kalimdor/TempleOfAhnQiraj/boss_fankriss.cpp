@@ -59,6 +59,7 @@ struct boss_fankriss : public BossAI
     {
         summonWormSpells = { SPELL_SUMMON_WORM_1, SPELL_SUMMON_WORM_2, SPELL_SUMMON_WORM_3 };
         BossAI::Reset();
+        summons.DespawnAll();
     }
 
     void SummonWorms()

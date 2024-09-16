@@ -15457,7 +15457,7 @@ void bot_ai::InitEquips(bool randEquip)
             }
             else if (lvl == 70)
             {
-                minIlevel = 88;
+                minIlevel = 85;
                 maxIlevel = 105;
             }
             else if (lvl >= 71 && lvl <= 79)
