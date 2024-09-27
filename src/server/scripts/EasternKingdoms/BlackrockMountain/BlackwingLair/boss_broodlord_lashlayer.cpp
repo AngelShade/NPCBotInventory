@@ -68,6 +68,8 @@ public:
     {
         boss_broodlordAI(Creature* creature) : BossAI(creature, DATA_BROODLORD_LASHLAYER) { }
 
+        EventMap customEvents;
+
         void JustEngagedWith(Unit* who) override
         {
             BossAI::JustEngagedWith(who);
@@ -85,6 +87,10 @@ public:
         {
             _JustDied();
             me->Yell("At last, the long nightmare is over...", LANG_UNIVERSAL);
+
+            // Remove aura from Firemaw
+            RemoveAuraFromFiremaw();
+
             Map::PlayerList const& players = me->GetMap()->GetPlayers();
             for (auto const& playerPair : players)
             {
@@ -94,12 +100,14 @@ public:
                     DistributeChallengeRewards(player, me, 1, false);
                 }
             }
+
             std::list<GameObject*> _goList;
             GetGameObjectListWithEntryInGrid(_goList, me, GO_SUPPRESSION_DEVICE, 200.0f);
-            for (std::list<GameObject*>::const_iterator itr = _goList.begin(); itr != _goList.end(); itr++)
+            for (auto const& go : _goList)
             {
-                ((*itr)->AI()->DoAction(ACTION_DEACTIVATE));
+                go->AI()->DoAction(ACTION_DEACTIVATE);
             }
+
             instance->SetBossState(DATA_BROODLORD_LASHLAYER, DONE);
         }
 
@@ -111,10 +119,29 @@ public:
             }
         }
 
+        void Reset() override
+        {
+            BossAI::Reset();
+            customEvents.Reset();
+            customEvents.ScheduleEvent(1, 10s);  // Custom event to apply aura every 10 seconds
+        }
+
         void UpdateAI(uint32 diff) override
         {
             if (!UpdateVictim())
+            {
+                // Apply aura to Firemaw if Broodlord is alive and not in combat
+                customEvents.Update(diff);
+                if (customEvents.ExecuteEvent() == 1)
+                {
+                    if (!me->IsInCombat() && me->IsAlive())
+                    {
+                        ApplyAuraToFiremaw(819753);
+                    }
+                    customEvents.ScheduleEvent(1, 10s);  // Re-schedule the event
+                }
                 return;
+            }
 
             events.Update(diff);
 
@@ -168,6 +195,34 @@ public:
                 {
                     add->AI()->AttackStart(nearestPlayer);
                 }
+            }
+        }
+
+        void ApplyAuraToFiremaw(uint32 spellId)
+        {
+            std::list<Creature*> creatures;
+            GetCreatureListWithEntryInGrid(creatures, me, 11983, 100.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 12457, 100.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 12459, 100.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 13996, 100.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 12461, 100.0f);
+            for (Creature* creature : creatures)
+            {
+                creature->AddAura(spellId, creature);
+            }
+        }
+
+        void RemoveAuraFromFiremaw()
+        {
+            std::list<Creature*> creatures;
+            GetCreatureListWithEntryInGrid(creatures, me, 11983, 200.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 12457, 200.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 12459, 200.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 13996, 200.0f);
+            GetCreatureListWithEntryInGrid(creatures, me, 12461, 200.0f);
+            for (Creature* creature : creatures)
+            {
+                creature->RemoveAurasDueToSpell(819753);
             }
         }
     };

@@ -1827,6 +1827,17 @@ struct npc_direbrew_antagonist : public ScriptedAI
 {
     npc_direbrew_antagonist(Creature* creature) : ScriptedAI(creature) {}
 
+    bool CanBeSeen(Player const* player) override
+    {
+        if (player->IsGameMaster())
+        {
+            return true;
+        }
+
+        Group const* group = player->GetGroup();
+        return group && sLFGMgr->GetDungeon(group->GetGUID()) == lfg::LFG_DUNGEON_COREN_DIREBREW;
+    }
+
     void DoAction(int32 action) override
     {
         switch (action)

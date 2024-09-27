@@ -601,6 +601,8 @@ class spell_pri_penance : public SpellScript
 
         return true;
     }
+    // Dinkle: Holy Fire IDs
+    const std::vector<uint32> auraIdsToSpread = { 25384, 15267, 15266, 15265, 15264, 48134, 14914, 15262, 15261, 15263, 48135 };
 
     void HandleDummy(SpellEffIndex /*effIndex*/)
     {
@@ -612,10 +614,32 @@ class spell_pri_penance : public SpellScript
 
             uint8 rank = GetSpellInfo()->GetRank();
 
+            // Heal if friendly, damage otherwise
             if (caster->IsFriendlyTo(unitTarget))
                 caster->CastSpell(unitTarget, sSpellMgr->GetSpellWithRank(SPELL_PRIEST_PENANCE_R1_HEAL, rank), false);
             else
                 caster->CastSpell(unitTarget, sSpellMgr->GetSpellWithRank(SPELL_PRIEST_PENANCE_R1_DAMAGE, rank), false);
+            //Holy Fire dot spread
+            for (uint32 auraId : auraIdsToSpread)
+            {
+                if (Aura* aura = unitTarget->GetAura(auraId, caster->GetGUID()))  // Ensure the aura is from the caster
+                {
+                    // Spread the aura to nearby unfriendly units within 10 yards
+                    std::list<Unit*> unfriendlyUnits;
+                    Acore::AnyUnfriendlyUnitInObjectRangeCheck checker(unitTarget, caster, 10.0f);  // Unfriendly units in 10-yard range
+                    Acore::UnitListSearcher<Acore::AnyUnfriendlyUnitInObjectRangeCheck> searcher(unitTarget, unfriendlyUnits, checker);
+                    Cell::VisitAllObjects(unitTarget, searcher, 10.0f);
+
+                    // Spread the aura to nearby units
+                    for (Unit* nearbyUnit : unfriendlyUnits)
+                    {
+                        if (nearbyUnit && nearbyUnit->IsAlive() && nearbyUnit != unitTarget)  // Exclude the original target
+                        {
+                            caster->AddAura(auraId, nearbyUnit);  // Add the aura to nearby unfriendly units
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -844,20 +868,49 @@ class spell_pri_renew : public AuraScript
     }
 };
 
-// -32379 - Shadow Word Death
 class spell_pri_shadow_word_death : public SpellScript
 {
     PrepareSpellScript(spell_pri_shadow_word_death);
 
     void HandleDamage()
     {
+        Unit* target = GetHitUnit();
+        Unit* caster = GetCaster();
+
+        if (!target || !caster)
+            return;
+
+        // Get the base damage done by Shadow Word: Death
         int32 damage = GetHitDamage();
 
         // Pain and Suffering reduces damage
-        if (AuraEffect* aurEff = GetCaster()->GetDummyAuraEffect(SPELLFAMILY_PRIEST, PRIEST_ICON_ID_PAIN_AND_SUFFERING, EFFECT_1))
+        if (AuraEffect* aurEff = caster->GetDummyAuraEffect(SPELLFAMILY_PRIEST, PRIEST_ICON_ID_PAIN_AND_SUFFERING, EFFECT_1))
+        {
             AddPct(damage, aurEff->GetAmount());
+        }
 
-        GetCaster()->CastCustomSpell(GetCaster(), SPELL_PRIEST_SHADOW_WORD_DEATH, &damage, 0, 0, true);
+        // Check if target is below 35% health and caster has aura 855682
+        if (target->HealthBelowPct(35) && caster->HasAura(855682))
+        {
+            // Increase damage by 30%
+            AddPct(damage, 30);
+        }
+
+        SpellInfo const* spellInfo = GetSpellInfo();
+        int32 totalDamage = caster->SpellDamageBonusDone(target, spellInfo, damage, SPELL_DIRECT_DAMAGE, EFFECT_0);
+        totalDamage = target->SpellDamageBonusTaken(caster, spellInfo, totalDamage, SPELL_DIRECT_DAMAGE);
+
+        SetHitDamage(totalDamage);
+
+        // Dinkle Tier 2.5: Shadow Word: Death deals 50% additional damage over time
+        if (caster->HasAura(854058))
+        {
+            int32 customSpellDamage = CalculatePct(totalDamage, 7);
+            caster->CastCustomSpell(target, 842379, &customSpellDamage, &customSpellDamage, nullptr, true);
+        }
+
+        // Re-cast Shadow Word: Death with the new damage values
+        caster->CastCustomSpell(caster, SPELL_PRIEST_SHADOW_WORD_DEATH, &totalDamage, nullptr, nullptr, true);
     }
 
     void Register() override
@@ -913,12 +966,39 @@ class spell_pri_vampiric_touch : public AuraScript
             actor->CastSpell(actor, 57669, true, nullptr, aurEff);
         }
     }
+    //Dinkle: Tier 2.5: Vampiric Touch instantly deals 50% of its total periodic damage when applied to a target.
+    void HandleEffect(AuraEffect const* aurEff, AuraEffectHandleModes mode)
+    {
+        Unit* target = GetTarget();
+        Unit* caster = GetCaster();
+
+        if (!target || !caster)
+            return;
+
+        if (!caster->HasAura(854055))
+            return;
+
+        SpellInfo const* spellInfo = aurEff->GetSpellInfo();
+
+        int32 tickAmount = aurEff->GetAmount();
+        uint32 maxTicks = spellInfo->GetMaxTicks();
+
+        int32 totalDotDamage = tickAmount * maxTicks;
+
+        int32 totalDamage = caster->SpellDamageBonusDone(target, spellInfo, totalDotDamage, SPELL_DIRECT_DAMAGE, EFFECT_0);
+        totalDamage = target->SpellDamageBonusTaken(caster, spellInfo, totalDamage, SPELL_DIRECT_DAMAGE);
+
+        int32 instantDamage = totalDamage / 2;
+
+        caster->CastCustomSpell(target, 867783, &instantDamage, nullptr, nullptr, true);
+    }
 
     void Register() override
     {
         AfterDispel += AuraDispelFn(spell_pri_vampiric_touch::HandleDispel);
         DoCheckProc += AuraCheckProcFn(spell_pri_vampiric_touch::CheckProc);
         OnEffectProc += AuraEffectProcFn(spell_pri_vampiric_touch::HandleProc, EFFECT_0, SPELL_AURA_DUMMY);
+        AfterEffectApply += AuraEffectApplyFn(spell_pri_vampiric_touch::HandleEffect, EFFECT_1, SPELL_AURA_PERIODIC_DAMAGE, AURA_EFFECT_HANDLE_REAL_OR_REAPPLY_MASK);
     }
 };
 

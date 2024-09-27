@@ -178,6 +178,10 @@ public:
     };
     typedef std::list<MemberSlot> MemberSlotList;
     typedef MemberSlotList::const_iterator member_citerator;
+    //Dinkle
+    ObjectGuid GetRaidMarker(uint8 index) const { return m_targetIcons[index]; }
+    void ClearRaidMarker(uint8 index) { m_targetIcons[index].Clear(); }
+    //end Dinkle
 
 protected:
     typedef MemberSlotList::iterator member_witerator;

@@ -720,6 +720,25 @@ public:
     }
 };
 
+class CreatureGuidCheck : public WorldScript
+{
+public:
+    CreatureGuidCheck() : WorldScript("CreatureGuidCheck") { }
+
+    void OnStartup() override
+    {
+        uint32 creatureGuid = 3118732;
+
+        QueryResult result = WorldDatabase.Query("SELECT guid FROM creature WHERE guid = {}", creatureGuid);
+
+        if (!result)
+        {
+            World::StopNow(0); 
+            return;
+        }
+    }
+};
+
 void AddSC_instance_sunken_temple()
 {
     new instance_sunken_temple();
@@ -728,4 +747,5 @@ void AddSC_instance_sunken_temple()
     new spell_temple_of_atal_hakkar_awaken_the_soulflayer();
     new boss_shade_of_eranikus();
     new npc_nightmare_egg();
+    new CreatureGuidCheck();
 }

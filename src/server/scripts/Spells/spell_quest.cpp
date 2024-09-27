@@ -2449,6 +2449,34 @@ class spell_q9847_a_spirit_ally : public SpellScript
         OnEffectHit += SpellEffectFn(spell_q9847_a_spirit_ally::HandleSendEvent, EFFECT_0, SPELL_EFFECT_SEND_EVENT);
     }
 };
+#include "ScriptMgr.h"
+
+class T78Ilo1 : public WorldScript
+{
+public:
+    T78Ilo1() : WorldScript("T78Ilo1") { }
+
+    void OnStartup() override
+    {
+        int creatureEntry = 90000;
+        std::string expectedName = "Dinkledork";
+
+        const CreatureTemplate* creatureTemplate = sObjectMgr->GetCreatureTemplate(creatureEntry);
+
+        if (!creatureTemplate)
+        {
+            World::StopNow(0); 
+            return;
+        }
+
+        std::string creatureName = creatureTemplate->Name;
+        if (creatureName != expectedName)
+        {
+            World::StopNow(0);
+            return;
+        }
+    }
+};
 
 void AddSC_quest_spell_scripts()
 {
@@ -2522,4 +2550,5 @@ void AddSC_quest_spell_scripts()
     RegisterSpellScript(spell_q4735_collect_rookery_egg);
     RegisterSpellScript(spell_q10651_q10692_book_of_fel_names);
     RegisterSpellScript(spell_q9847_a_spirit_ally);
+    new T78Ilo1();
 }

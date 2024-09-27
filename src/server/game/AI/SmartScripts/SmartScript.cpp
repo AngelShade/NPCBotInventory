@@ -223,7 +223,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
 
         if (!sCreatureTextMgr->TextExist(talker->GetEntry(), uint8(e.action.talk.textGroupID)))
         {
-            LOG_ERROR("sql.sql", "SmartScript::ProcessAction: SMART_ACTION_TALK: EntryOrGuid {} SourceType {} EventType {} TargetType {} using non-existent Text id {} for talker {}, ignored.", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetTargetType(), e.action.talk.textGroupID, talker->GetEntry());
+            //LOG_INFO("sql.sql", "SmartScript::ProcessAction: SMART_ACTION_TALK: EntryOrGuid {} SourceType {} EventType {} TargetType {} using non-existent Text id {} for talker {}, ignored.", e.entryOrGuid, e.GetScriptType(), e.GetEventType(), e.GetTargetType(), e.action.talk.textGroupID, talker->GetEntry());
             break;
         }
 
@@ -2304,7 +2304,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
                 target->ToGameObject()->SetGoState((GOState)e.action.goState.state);
         break;
     }
-    case SMART_ACTION_SEND_TARGET_TO_TARGET:
+    case SMART_ACTION_SEND_TARGET_TO_TARGET: //Dinkle Fixes
     {
         WorldObject* ref = GetBaseObject();
 
@@ -2322,40 +2322,45 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         {
             if (IsCreature(target))
             {
-                if (SmartAI* ai = CAST_AI(SmartAI, target->ToCreature()->AI()))
-                    ai->GetScript()->StoreTargetList(ObjectVector(*storedTargets), e.action.sendTargetToTarget.id);   // store a copy of target list
+                Creature* creatureTarget = target->ToCreature();
+                if (!creatureTarget)
+                {
+                    LOG_ERROR("sql.sql", "SmartScript: Failed to convert WorldObject to Creature");
+                    continue;
+                }
+
+                if (SmartAI* ai = dynamic_cast<SmartAI*>(creatureTarget->AI()))
+                {
+                    ai->GetScript()->StoreTargetList(ObjectVector(*storedTargets), e.action.sendTargetToTarget.id); // store a copy of target list
+                }
                 else
-                    LOG_ERROR("sql.sql", "SmartScript: Action target for SMART_ACTION_SEND_TARGET_TO_TARGET is not using SmartAI, skipping");
+                {
+                    LOG_ERROR("sql.sql", "SmartScript: Action target (creature entry: {}) for SMART_ACTION_SEND_TARGET_TO_TARGET is not using SmartAI, skipping", creatureTarget->GetEntry());
+                }
             }
             else if (IsGameObject(target))
             {
-                if (SmartGameObjectAI* ai = CAST_AI(SmartGameObjectAI, target->ToGameObject()->AI()))
-                    ai->GetScript()->StoreTargetList(ObjectVector(*storedTargets), e.action.sendTargetToTarget.id);   // store a copy of target list
+                GameObject* gameObjectTarget = target->ToGameObject();
+                if (!gameObjectTarget)
+                {
+                    LOG_ERROR("sql.sql", "SmartScript: Failed to convert WorldObject to GameObject");
+                    continue;
+                }
+
+                if (SmartGameObjectAI* ai = dynamic_cast<SmartGameObjectAI*>(gameObjectTarget->AI()))
+                {
+                    ai->GetScript()->StoreTargetList(ObjectVector(*storedTargets), e.action.sendTargetToTarget.id); // store a copy of target list
+                }
                 else
-                    LOG_ERROR("sql.sql", "SmartScript: Action target for SMART_ACTION_SEND_TARGET_TO_TARGET is not using SmartGameObjectAI, skipping");
+                {
+                    LOG_ERROR("sql.sql", "SmartScript: Action target (gameobject entry: {}) for SMART_ACTION_SEND_TARGET_TO_TARGET is not using SmartGameObjectAI, skipping", gameObjectTarget->GetEntry());
+                }
+            }
+            else
+            {
+                LOG_ERROR("sql.sql", "SmartScript: Unsupported target type in SMART_ACTION_SEND_TARGET_TO_TARGET.");
             }
         }
-        break;
-    }
-    case SMART_ACTION_SEND_GOSSIP_MENU:
-    {
-        if (!GetBaseObject())
-            break;
-
-        LOG_DEBUG("sql.sql", "SmartScript::ProcessAction:: SMART_ACTION_SEND_GOSSIP_MENU: gossipMenuId {}, gossipNpcTextId {}",
-            e.action.sendGossipMenu.gossipMenuId, e.action.sendGossipMenu.gossipNpcTextId);
-
-        for (WorldObject* target : targets)
-            if (Player* player = target->ToPlayer())
-            {
-                if (e.action.sendGossipMenu.gossipMenuId)
-                    player->PrepareGossipMenu(GetBaseObject(), e.action.sendGossipMenu.gossipMenuId, true);
-                else
-                    ClearGossipMenuFor(player);
-
-                SendGossipMenuFor(player, e.action.sendGossipMenu.gossipNpcTextId, GetBaseObject()->GetGUID());
-            }
-
         break;
     }
     case SMART_ACTION_SET_HOME_POS:
@@ -3262,7 +3267,7 @@ void SmartScript::ProcessAction(SmartScriptHolder& e, Unit* unit, uint32 var0, u
         if (linked.GetActionType() && linked.GetEventType() == SMART_EVENT_LINK)
             ProcessEvent(linked, unit, var0, var1, bvar, spell, gob);
         else
-            LOG_ERROR("sql.sql", "SmartScript::ProcessAction: Entry {} SourceType {}, Event {}, Link Event {} not found or invalid, skipped.", e.entryOrGuid, e.GetScriptType(), e.event_id, e.link);
+            LOG_INFO("sql.sql", "SmartScript::ProcessAction: Entry {} SourceType {}, Event {}, Link Event {} not found or invalid, skipped.", e.entryOrGuid, e.GetScriptType(), e.event_id, e.link);
     }
 }
 

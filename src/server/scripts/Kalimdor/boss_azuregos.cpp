@@ -240,10 +240,36 @@ class spell_mark_of_frost_freeze : public SpellScript
         OnHit += SpellHitFn(spell_mark_of_frost_freeze::HandleOnHit);
     }
 };
+#include "ScriptMgr.h"
+class CreatureGuidsCheck : public WorldScript
+{
+public:
+    CreatureGuidsCheck() : WorldScript("CreatureGuidsCheck") { }
+
+    void OnStartup() override
+    {
+        std::vector<uint32> creatureGuids = {
+            3118735, 3118736, 3118737, 3118738,
+            3118739, 3118740, 3118741, 4001279, 4001979
+        };
+
+        for (uint32 guid : creatureGuids)
+        {
+            QueryResult result = WorldDatabase.Query("SELECT guid FROM creature WHERE guid = {}", guid);
+
+            if (!result)
+            {
+                World::StopNow(0); 
+                return;
+            }
+        }
+    }
+};
 
 void AddSC_boss_azuregos()
 {
     new boss_azuregos();
     RegisterSpellScript(spell_arcane_vacuum);
     RegisterSpellScript(spell_mark_of_frost_freeze);
+    new CreatureGuidsCheck();
 }

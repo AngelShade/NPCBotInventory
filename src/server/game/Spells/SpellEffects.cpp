@@ -344,6 +344,16 @@ void Spell::EffectSchoolDMG(SpellEffIndex effIndex)
     if (unitTarget && unitTarget->IsAlive())
     {
         bool apply_direct_bonus = true;
+        // Dinkle: Move meteor outside switch
+        if (m_spellInfo->HasAttribute(SPELL_ATTR0_CU_SHARE_DAMAGE))
+        {
+            uint32 count = 0;
+            for (std::list<TargetInfo>::iterator ihit = m_UniqueTargetInfo.begin(); ihit != m_UniqueTargetInfo.end(); ++ihit)
+                if (ihit->effectMask & (1 << effIndex))
+                    ++count;
+
+            damage /= count;                    // divide to all targets
+        }
         switch (m_spellInfo->SpellFamilyName)
         {
             case SPELLFAMILY_GENERIC:
@@ -6310,23 +6320,6 @@ void Spell::SummonGuardian(uint32 i, uint32 entry, SummonPropertiesEntry const* 
             summon->SetFaction(caster->GetFaction());
 
         ExecuteLogEffectSummonObject(i, summon);
-    }
-
-    // Summon infernal, cast enslave demon
-    // xinef: have to do it here because in Pet init stats infernal is not in world, imo this should be changed...
-    if (summon)
-    {
-        switch (m_spellInfo->Id)
-        {
-            // Inferno, Warlock summon spell
-            case 1122:
-                caster->AddAura(61191, summon);
-                break;
-            // Ritual of Doom, Warlock summon spell
-            case 60478:
-                caster->AddAura(SPELL_RITUAL_ENSLAVEMENT, summon);
-                break;
-        }
     }
 }
 

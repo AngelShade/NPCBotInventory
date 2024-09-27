@@ -440,6 +440,9 @@ Creature* BattlegroundAV::AddAVCreature(uint16 cinfoid, uint16 type)
     if (creature->GetEntry() == BG_AV_CreatureInfo[AV_NPC_A_CAPTAIN] || creature->GetEntry() == BG_AV_CreatureInfo[AV_NPC_H_CAPTAIN])
         creature->SetRespawnDelay(RESPAWN_ONE_DAY); /// @todo: look if this can be done by database + also add this for the wingcommanders
 
+    if (creature->GetEntry() == BG_AV_CreatureInfo[AV_NPC_A_TOWERDEFENSE] || creature->GetEntry() == BG_AV_CreatureInfo[AV_NPC_H_TOWERDEFENSE])
+        creature->SetUnitFlag(UNIT_FLAG_DISABLE_MOVE);
+
     if ((isStatic && cinfoid >= 10 && cinfoid <= 14) || (!isStatic && ((cinfoid >= AV_NPC_A_GRAVEDEFENSE0 && cinfoid <= AV_NPC_A_GRAVEDEFENSE3) ||
         (cinfoid >= AV_NPC_H_GRAVEDEFENSE0 && cinfoid <= AV_NPC_H_GRAVEDEFENSE3))))
     {
@@ -648,7 +651,23 @@ void BattlegroundAV::EndBattleground(TeamId winnerTeamId)
         if (kills[iTeamId] != 0)
             RewardHonorToTeam(GetBonusHonorFromKill(kills[iTeamId]), iTeamId);
     }
+    // Reward players with Mark of Honor based on win or loss
+    BattlegroundPlayerMap const& players = GetPlayers();
+    for (BattlegroundPlayerMap::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+    {
+        Player* player = ObjectAccessor::FindPlayer(itr->first);
+        if (!player || !player->GetSession())
+            continue;
 
+        if (player->GetTeamId() == winnerTeamId)
+        {
+            player->AddItem(20560, 3); // Reward 3 items to the winning team
+        }
+        else
+        {
+            player->AddItem(20560, 1); // Reward 1 item to the losing team
+        }
+    }
     //TODO add enterevademode for all attacking creatures
     Battleground::EndBattleground(winnerTeamId);
 }
