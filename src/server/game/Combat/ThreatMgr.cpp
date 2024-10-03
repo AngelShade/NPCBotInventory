@@ -23,6 +23,7 @@
 #include "Player.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
+#include "Totem.h"
 #include "Unit.h"
 #include "UnitEvents.h"
 
@@ -80,7 +81,23 @@ bool ThreatCalcHelper::isValidProcess(Unit* hatedUnit, Unit* hatingUnit, SpellIn
     // spell not causing threat
     if (threatSpell && threatSpell->HasAttribute(SPELL_ATTR1_NO_THREAT))
         return false;
-
+    
+    // some player totems not causing threat
+    if (hatedUnit->IsTotem())
+        if (Totem* totem = hatedUnit->ToTotem())
+            if (totem->GetOwner()->IsPlayer())
+                if ((totem->GetEntry() == 3527) || // Healing Stream Totem (Rank 1)
+                    (totem->GetEntry() == 3906) || // Healing Stream Totem (Rank 2)
+                    (totem->GetEntry() == 3907) || // Healing Stream Totem (Rank 3)
+                    (totem->GetEntry() == 3908) || // Healing Stream Totem (Rank 4)
+                    (totem->GetEntry() == 3909) || // Healing Stream Totem (Rank 5)
+                    (totem->GetEntry() == 15488) || // Healing Stream Totem (Rank 6)
+                    (totem->GetEntry() == 31181) || // Healing Stream Totem (Rank 7)
+                    (totem->GetEntry() == 31182) || // Healing Stream Totem (Rank 8)
+                    (totem->GetEntry() == 31185) || // Healing Stream Totem (Rank 9)
+                    (totem->GetEntry() == 5924) || // Cleansing Totem
+                    (totem->GetEntry() == 5913)) // Tremor Totem
+                    return false;
     ASSERT(hatingUnit->IsCreature());
 
     return true;
