@@ -224,9 +224,9 @@ struct boss_magtheridon : public BossAI
                 scheduler.CancelGroup(GROUP_EARLY_RELEASE_CHECK); //cancel regular countdown
                 _magReleased = true;
                 scheduler.Schedule(3s, [this](TaskContext)
-                {
-                    ScheduleCombatEvents();
-                });
+                    {
+                        ScheduleCombatEvents();
+                    });
             }
         }
     }

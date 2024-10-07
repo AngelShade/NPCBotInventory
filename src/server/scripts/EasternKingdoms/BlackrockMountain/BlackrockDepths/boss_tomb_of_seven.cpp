@@ -234,7 +234,7 @@ public:
 
             _events.Update(diff);
 
-            switch(_events.ExecuteEvent())
+            switch (_events.ExecuteEvent())
             {
                 case EVENT_SPELL_SHADOWBOLTVOLLEY:
                     DoCastVictim(SPELL_SHADOWBOLTVOLLEY);

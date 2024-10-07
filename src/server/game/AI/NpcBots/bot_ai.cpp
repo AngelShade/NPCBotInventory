@@ -15980,7 +15980,11 @@ void bot_ai::InitEquips(bool randEquip)
         if (_equips[slot] && IsUsableItem(_equips[slot]))
         {
             uint32 slotMask = 1ul << slot;
-            ASSERT(!(_usableItemSlotsMask & slotMask));
+            if (_usableItemSlotsMask & slotMask)
+            {
+                LOG_ERROR("npcbots","Slot {} is already in usable slots mask", slot);
+            }
+            ASSERT(!(_usableItemSlotsMask & slotMask)); 
             _usableItemSlotsMask |= slotMask;
         }
     }

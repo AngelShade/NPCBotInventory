@@ -216,6 +216,7 @@ public:
 
             _events.Update(diff);
 
+            // Use a while loop to process each event in the queue
             while (uint32 eventId = _events.ExecuteEvent())
             {
                 switch (eventId)
@@ -230,6 +231,8 @@ public:
                 case EVENT_FIREBOLT_VOLLEY:
                     DoCast(SPELL_FIREBOLT_VOLLEY);
                     _events.ScheduleEvent(EVENT_FIREBOLT_VOLLEY, 12s);
+                    break;
+                default:
                     break;
                 }
             }
