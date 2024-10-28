@@ -2712,6 +2712,8 @@ void ObjectMgr::LoadItemTemplates()
     uint32 count = 0;
     // original inspiration https://github.com/TrinityCore/TrinityCore/commit/0c44bd33ee7b42c924859139a9f4b04cf2b91261
     bool enforceDBCAttributes = sWorld->getBoolConfig(CONFIG_DBC_ENFORCE_ITEM_ATTRIBUTES);
+    bool convertBOPItems = sWorld->getBoolConfig(CONFIG_CONVERT_BOP_ITEMS_TO_ACCOUNT_BOUND);
+
 
     do
     {
@@ -2834,6 +2836,11 @@ void ObjectMgr::LoadItemTemplates()
         {
             LOG_DEBUG("sql.sql", "Item (Entry: {}) does not exist in item.dbc! (not correct id?).", entry);
             continue;
+        }
+
+        if (convertBOPItems && itemTemplate.Bonding == BIND_WHEN_PICKED_UP && itemTemplate.RequiredLevel >= 1)
+        {
+            itemTemplate.Flags = static_cast<ItemFlags>(static_cast<uint32>(itemTemplate.Flags) | ITEM_FLAG_IS_BOUND_TO_ACCOUNT);  // Set the account-bound flag
         }
 
         if (enforceDBCAttributes)

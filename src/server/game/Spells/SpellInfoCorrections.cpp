@@ -4573,21 +4573,6 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->ProcChance = 3;
     });
 
-    // Mount Speed
-    // Mithril Spurs
-    ApplySpellFix({ 48776, 7215 }, [](SpellInfo* spellInfo)
-        {
-            spellInfo->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_MOD_FLIGHT_SPEED_NOT_STACK;
-        });
-
-    // Mount Speed
-    ApplySpellFix({ 48777 }, [](SpellInfo* spellInfo)
-        {
-            spellInfo->Effects[EFFECT_1].Effect = SPELL_EFFECT_APPLY_AURA;
-            spellInfo->Effects[EFFECT_1].ApplyAuraName = SPELL_AURA_MOD_FLIGHT_SPEED_NOT_STACK;
-        });
-
-
     // Wrath of the Titans Stacker
     ApplySpellFix({ 30610 }, [](SpellInfo* spellInfo)
         {

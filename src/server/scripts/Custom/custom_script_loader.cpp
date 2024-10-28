@@ -103,6 +103,7 @@ void AddSC_spell_warr_thunderclap();
 void AddSC_ursa_lair_screature();
 void AddSC_boss_thermaplugg();
 void AddSC_custom_priest_spells();
+void AddSC_npc_account_item_bank();
 
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
@@ -199,6 +200,7 @@ void AddCustomScripts()
     AddSC_ursa_lair_screature();
     AddSC_boss_thermaplugg();
     AddSC_custom_priest_spells();
+    AddSC_npc_account_item_bank();
 
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();
