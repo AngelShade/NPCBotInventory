@@ -193,6 +193,9 @@ float _botRatesClassic;
 float _botRatesTBC;
 float _tankHPModifier;
 std::vector<float> _mult_dmg_levels;
+std::vector<float> _mult_heal_levels;
+std::vector<float> _mult_hp_levels;
+std::vector<float> _mult_mp_levels;
 LvlBrackets _max_npcbots;
 PctBrackets _botwanderer_pct_level_brackets;
 std::vector<uint32> _disabled_instance_maps;
@@ -277,21 +280,21 @@ void AddNpcBotScripts()
 
 BotMgr::BotMgr(Player* const master) : _owner(master), _dpstracker(new DPSTracker())
 {
-    //LoadConfig(); already loaded (MapMgr.cpp)
-    _followdist = _basefollowdist;
-    _exactAttackRange = 0;
-    _attackRangeMode = BOT_ATTACK_RANGE_SHORT;
-    _attackAngleMode = BOT_ATTACK_ANGLE_NORMAL;
-    _allowCombatPositioning = true;
-    _npcBotEngageDelayDPS = _npcBotEngageDelayDPS_default;
-    _npcBotEngageDelayHeal = _npcBotEngageDelayHeal_default;
-
-    _botsHidden = false;
     _quickrecall = false;
+    _data = nullptr;
 }
 BotMgr::~BotMgr()
 {
+    if (_data)
+        _data->flags &= NPCBOT_MGR_FLAG_MASK_ALL_DB_ALLOWED;
+
     delete _dpstracker;
+}
+
+void BotMgr::LoadData()
+{
+    ASSERT(!_data, "Trying to load player {} data a second time", _owner->GetGUID().GetCounter());
+    _data = BotDataMgr::SelectOrCreateNpcBotMgrData(_owner->GetGUID());
 }
 
 void BotMgr::Initialize()
@@ -305,6 +308,7 @@ void BotMgr::Initialize()
     BotDataMgr::CreateWanderingBotsSortedGear();
     BotDataMgr::LoadNpcBotGroupData();
     BotDataMgr::LoadNpcBotGearStorage();
+    BotDataMgr::LoadNpcBotMgrData();
     BotDataMgr::DeleteOldLogs();
 
     ResolveConfigConflicts();
@@ -508,6 +512,48 @@ void BotMgr::LoadConfig(bool reload)
         _mult_dmg_levels.push_back(fval);
     }
 
+    _mult_heal_levels.clear();
+    std::string mult_healing_by_levels = sConfigMgr->GetStringDefault("NpcBot.Mult.Healing.Levels", "1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0");
+    std::vector<std::string_view> toks5 = Acore::Tokenize(mult_healing_by_levels, ',', false);
+    ASSERT(toks5.size() >= BracketsCount, "NpcBot.Mult.Healing.Levels must have at least %u values", uint32(BracketsCount));
+    for (decltype(toks5)::size_type i = 0; i != toks5.size(); ++i)
+    {
+        Optional<float> val = Acore::StringTo<float>(toks5[i]);
+        if (val == std::nullopt)
+            LOG_ERROR("server.loading", "NpcBot.Mult.Healing.Levels contains invalid float value '{}', set to default", toks5[i]);
+        float fval = val.value_or(1.0f);
+        RoundToInterval(fval, 0.1f, 10.f);
+        _mult_heal_levels.push_back(fval);
+    }
+
+    _mult_hp_levels.clear();
+    std::string mult_hp_by_levels = sConfigMgr->GetStringDefault("NpcBot.Mult.HP.Levels", "1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0");
+    std::vector<std::string_view> toks6 = Acore::Tokenize(mult_hp_by_levels, ',', false);
+    ASSERT(toks6.size() >= BracketsCount, "NpcBot.Mult.HP.Levels must have at least %u values", uint32(BracketsCount));
+    for (decltype(toks6)::size_type i = 0; i != toks6.size(); ++i)
+    {
+        Optional<float> val = Acore::StringTo<float>(toks6[i]);
+        if (val == std::nullopt)
+            LOG_ERROR("server.loading", "NpcBot.Mult.HP.Levels contains invalid float value '{}', set to default", toks6[i]);
+        float fval = val.value_or(1.0f);
+        RoundToInterval(fval, 0.1f, 10.f);
+        _mult_hp_levels.push_back(fval);
+    }
+
+    _mult_mp_levels.clear();
+    std::string mult_mp_by_levels = sConfigMgr->GetStringDefault("NpcBot.Mult.MP.Levels", "1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0");
+    std::vector<std::string_view> toks7 = Acore::Tokenize(mult_mp_by_levels, ',', false);
+    ASSERT(toks7.size() >= BracketsCount, "NpcBot.Mult.MP.Levels must have at least %u values", uint32(BracketsCount));
+    for (decltype(toks7)::size_type i = 0; i != toks7.size(); ++i)
+    {
+        Optional<float> val = Acore::StringTo<float>(toks7[i]);
+        if (val == std::nullopt)
+            LOG_ERROR("server.loading", "NpcBot.Mult.MP.Levels contains invalid float value '{}', set to default", toks7[i]);
+        float fval = val.value_or(1.0f);
+        RoundToInterval(fval, 0.1f, 10.f);
+        _mult_mp_levels.push_back(fval);
+    }
+
     _botwanderer_pct_level_brackets = {};
     std::string wanderers_by_levels = sConfigMgr->GetStringDefault("NpcBot.WanderingBots.Continents.Levels", "20,15,15,10,10,15,15,0,0");
     std::vector<std::string_view> toks2 = Acore::Tokenize(wanderers_by_levels, ',', false);
@@ -517,7 +563,7 @@ void BotMgr::LoadConfig(bool reload)
     {
         Optional<uint32> val = Acore::StringTo<uint32>(toks2[i]);
         if (val == std::nullopt)
-            LOG_ERROR("server.loading", "NpcBot.Mult.Damage.Levels contains invalid uint32 value '{}', set to default", std::string(toks2[i]).c_str());
+            LOG_ERROR("server.loading", "NpcBot.WanderingBots.Continents.Levels contains invalid uint32 value '{}', set to default", std::string(toks2[i]).c_str());
         uint32 uval = val.value_or(uint32(0));
         total_pct += uval;
         _botwanderer_pct_level_brackets[i] = uval;
@@ -1189,7 +1235,7 @@ void BotMgr::Update(uint32 diff)
     if (_quickrecall)
     {
         _quickrecall = false;
-        _botsHidden = false;
+        _data->RemoveFlag(NPCBOT_MGR_FLAG_HIDE_BOTS);
     }
 }
 
@@ -1215,7 +1261,7 @@ bool BotMgr::RestrictBots(Creature const* bot, bool add) const
     if (_owner->IsInFlight())
         return true;
 
-    if (_botsHidden)
+    if (_data->HasFlag(NPCBOT_MGR_FLAG_HIDE_BOTS))
         return true;
 
     Map const* currMap = _owner->GetMap();
@@ -1388,12 +1434,11 @@ void BotMgr::_reviveBot(Creature* bot, WorldLocation* dest)
             bot->Relocate(dest);
     }
 
-    bot->SetDisplayId(bot->GetNativeDisplayId());
+    bot->SetDisplayId(bot->GetNativeDisplayId(), bot->GetCreatureTemplate()->scale);
     bot->ReplaceAllNpcFlags(NPCFlags(bot->GetCreatureTemplate()->npcflag));
     bot->ClearUnitState(uint32(UNIT_STATE_ALL_STATE & ~(UNIT_STATE_IGNORE_PATHFINDING | UNIT_STATE_NO_ENVIRONMENT_UPD)));
     bot->ReplaceAllUnitFlags(UnitFlags(0));
     bot->SetLootRecipient(nullptr);
-    bot->ResetPlayerDamageReq();
     bot->SetPvP(bot->GetBotOwner()->IsPvP());
     bot->Motion_Initialize();
     bot->setDeathState(DeathState::Alive);
@@ -1404,6 +1449,9 @@ void BotMgr::_reviveBot(Creature* bot, WorldLocation* dest)
     bot->SetHealth(bot->GetMaxHealth() / restore_factor); //25% of max health
     if (bot->GetMaxPower(POWER_MANA) > 1)
         bot->SetPower(POWER_MANA, bot->GetMaxPower(POWER_MANA) / restore_factor); //25% of max mana
+
+    if (IsWanderingWorldBot(bot))
+        bot->ResetPlayerDamageReq();
 
     if (!bot->GetBotAI()->IAmFree() && !bot->GetBotAI()->HasBotCommandState(BOT_COMMAND_MASK_UNMOVING))
         bot->GetBotAI()->SetBotCommandState(BOT_COMMAND_FOLLOW, true);
@@ -1882,6 +1930,8 @@ BotAddResult BotMgr::AddBot(Creature* bot, bool costMoney)
 
     bot->GetBotAI()->Reset();
 
+    bot->LowerPlayerDamageReq(bot->GetMaxHealth(), false);
+
     if (!bot->IsInWorld())
         TeleportBot(bot, _owner->GetMap(), _owner);
 
@@ -2244,7 +2294,7 @@ void BotMgr::RecallAllBots(bool teleport)
 {
     if (teleport)
     {
-        _botsHidden = true;
+        _data->SetFlag(NPCBOT_MGR_FLAG_HIDE_BOTS);
         _quickrecall = true;
     }
     else
@@ -2627,6 +2677,71 @@ void BotMgr::SetBotPetAuraUpdateMaskForRaid(Creature const* botpet, uint8 slot)
 void BotMgr::ResetBotPetAuraUpdateMaskForRaid(Creature const* botpet)
 {
     botpet->GetBotPetAI()->ResetAuraUpdateMaskForRaid();
+}
+
+uint8 BotMgr::GetBotFollowDist() const
+{
+    return _data->dist_follow;
+}
+void BotMgr::SetBotFollowDist(uint8 dist)
+{
+    _data->dist_follow = dist;
+}
+
+void BotMgr::_setBotExactAttackRange(uint8 exactRange)
+{
+    _data->dist_attack = exactRange;
+}
+
+uint8 BotMgr::GetBotExactAttackRange() const
+{
+    return _data->dist_attack;
+}
+uint8 BotMgr::GetBotAttackRangeMode() const
+{
+    return _data->attack_range_mode;
+}
+void BotMgr::SetBotAttackRangeMode(uint8 mode, uint8 exactRange)
+{
+    _data->attack_range_mode = mode; _setBotExactAttackRange(exactRange);
+}
+
+uint8 BotMgr::GetBotAttackAngleMode() const
+{
+    return _data->attack_angle_mode;
+}
+void BotMgr::SetBotAttackAngleMode(uint8 mode)
+{
+    _data->attack_angle_mode = mode;
+}
+
+bool BotMgr::GetBotAllowCombatPositioning() const
+{
+    return !_data->HasFlag(NPCBOT_MGR_FLAG_DISABLE_COMBAT_POSITIONING);
+}
+void BotMgr::SetBotAllowCombatPositioning(bool allow)
+{
+    allow ? _data->RemoveFlag(NPCBOT_MGR_FLAG_DISABLE_COMBAT_POSITIONING) : _data->SetFlag(NPCBOT_MGR_FLAG_DISABLE_COMBAT_POSITIONING);
+}
+
+void BotMgr::SetBotsHidden(bool hidden)
+{
+    hidden ? _data->SetFlag(NPCBOT_MGR_FLAG_HIDE_BOTS) : _data->RemoveFlag(NPCBOT_MGR_FLAG_HIDE_BOTS);
+}
+
+uint32 BotMgr::GetEngageDelayDPS() const
+{
+    return _data->engage_delay_dps;
+}
+uint32 BotMgr::GetEngageDelayHeal() const { return _data->engage_delay_heal;
+}
+void BotMgr::SetEngageDelayDPS(uint32 delay)
+{
+    _data->engage_delay_dps = delay;
+}
+void BotMgr::SetEngageDelayHeal(uint32 delay)
+{
+    _data->engage_delay_heal = delay;
 }
 
 void BotMgr::PropagateEngageTimers() const
@@ -3386,6 +3501,40 @@ float BotMgr::GetBotDamageModByLevel(uint8 botlevel)
     if (bracket < _mult_dmg_levels.size())
         return _mult_dmg_levels[bracket];
     return 1.0f;
+}
+float BotMgr::GetBotHealingModByLevel(uint8 botlevel)
+{
+    uint8 bracket = botlevel / 10;
+    if (bracket < _mult_heal_levels.size())
+        return _mult_heal_levels[bracket];
+    return 1.0f;
+}
+float BotMgr::GetBotHPModByLevel(uint8 botlevel)
+{
+    uint8 bracket = botlevel / 10;
+    if (bracket < _mult_hp_levels.size())
+        return _mult_hp_levels[bracket];
+    return 1.0f;
+}
+float BotMgr::GetBotMPModByLevel(uint8 botlevel)
+{
+    uint8 bracket = botlevel / 10;
+    if (bracket < _mult_mp_levels.size())
+        return _mult_mp_levels[bracket];
+    return 1.0f;
+}
+
+uint8 BotMgr::GetFollowDistDefault()
+{
+    return _basefollowdist;
+}
+uint32 BotMgr::GetEngageDelayDPSDefault()
+{
+    return _npcBotEngageDelayDPS_default;
+}
+uint32 BotMgr::GetEngageDelayHealDefault()
+{
+    return _npcBotEngageDelayHeal_default;
 }
 
 std::vector<Unit*> BotMgr::GetAllGroupMembers(Group const* group)

@@ -1,0 +1,137 @@
+[worldserver]
+
+#
+# Announcer.Enable
+#   Enable/Disable the Announcer for the Keep Out module.
+#   This will send a message to players notifying them that the Keep Out module is active.
+#   Default: 1 (Enabled)
+#
+Announcer.Enable = 1
+
+#
+# KeepOutEnabled
+#   Enable/Disable the Keep Out module.
+#   This controls whether the entire Keep Out system is active or not.
+#   Default: 1 (Enabled)
+#
+KeepOutEnabled = 1
+
+#
+# MaxWarnings
+#   Maximum number of warnings a player can receive before a ban occurs.
+#   Once a player exceeds this number of warnings, they will be banned for the first time ban duration.
+#   Default: 3 warnings.
+#
+MaxWarnings = 3
+
+#
+# KeepOutFirstBanDuration
+#   The duration of the first ban (in minutes) that a player will receive after exceeding the maximum number of warnings.
+#   This determines how long the player is banned after the third warning.
+#   Default: 1440 minutes (24 hours).
+#
+KeepOutFirstBanDuration = 1440
+
+#
+# KeepOutBanDurationIncrement
+#   The additional ban duration (in minutes) added after each subsequent warning and ban.
+#   If a player violates the rule again after being banned, the ban duration will increase by this amount.
+#   Default: 1440 minutes (24 hours).
+#
+KeepOutBanDurationIncrement = 1440
+
+#
+# KeepOutTeleportEnabled
+#   Enable/Disable automatic teleportation of players out of restricted zones.
+#   When enabled, players will be teleported to a safe location when they enter a restricted zone.
+#   Default: 1 (Enabled)
+#
+KeepOutTeleportEnabled = 1
+
+#
+# KeepOutKickPlayerEnabled
+#   Enable/Disable kicking the player after they receive their second warning.
+#   After a player is warned twice, they will be kicked from the server.
+#   Default: 1 (Enabled)
+#
+KeepOutKickPlayerEnabled = 1
+
+#
+# KeepOutBanPlayerEnabled
+#   Enable/Disable banning the player after they receive their third warning.
+#   If enabled, players will be banned after the third warning for the duration specified in KeepOutFirstBanDuration.
+#   Default: 1 (Enabled)
+#
+KeepOutBanPlayerEnabled = 1
+
+#
+# KeepOutTeleportCooldown
+#   The cooldown period (in seconds) before a player can be teleported again after entering a restricted zone.
+#   This prevents continuous teleportation if the player repeatedly enters the restricted zone within a short period.
+#   Default: 60 seconds.
+#
+KeepOutTeleportCooldown = 60
+
+#
+# KeepOutRestrictSummons
+#   Enable/Disable the restriction on summoning players into restricted zones.
+#   When enabled, players will not be allowed to summon other players into restricted zones.
+#   Default: 1 (Enabled)
+#
+KeepOutRestrictSummons = 1
+
+#
+# KeepOutEnableDiscordNotifications
+#   Enable/Disable notifications to a Discord channel when a player violates the zone restrictions.
+#   If enabled, the server will send a notification via Discord webhook when players enter restricted zones.
+#   Default: 0 (Disabled)
+#
+KeepOutEnableDiscordNotifications = 0
+
+#
+# KeepOutDiscordWebhookURL
+#   The Discord webhook URL where the server will send notifications about zone violations.
+#   If KeepOutEnableDiscordNotifications is enabled, this URL must be set to the Discord webhook URL where the notifications will be sent.
+#   Default: "" (Empty, no URL)
+#
+KeepOutDiscordWebhookURL = ""
+
+#
+# KeepOutGMBanBypassLevel
+#   The Game Master (GM) level required to bypass the Keep Out module's restrictions.
+#   Players with a GM level equal to or greater than this value will be able to enter restricted zones without warnings or bans.
+#   Default: 2 (Game Master level).
+#
+KeepOutGMBanBypassLevel = 2
+
+#
+# KeepOutEnableTimeBasedRestrictions
+#   Enable/Disable time-based restrictions for zones.
+#   When enabled, zones can be restricted based on specific times of the day, using the KeepOutRestrictedTimeStart and KeepOutRestrictedTimeEnd settings.
+#   Default: 0 (Disabled)
+#
+KeepOutEnableTimeBasedRestrictions = 0
+
+#
+# KeepOutRestrictedTimeStart
+#   The start time (hour) for restricted zones if time-based restrictions are enabled.
+#   Players will be restricted from entering certain zones starting at this hour (24-hour format).
+#   Default: 0 (00:00 or midnight).
+#
+KeepOutRestrictedTimeStart = 0
+
+#
+# KeepOutRestrictedTimeEnd
+#   The end time (hour) for restricted zones if time-based restrictions are enabled.
+#   Players will be restricted from entering certain zones until this hour (24-hour format).
+#   Default: 24 (midnight of the next day).
+#
+KeepOutRestrictedTimeEnd = 24
+
+#
+# KeepOutEnableContinuousCheck
+#   Enable/Disable continuous checks for players entering restricted zones.
+#   When enabled, the system will continuously check if players are in restricted zones and apply the appropriate actions (e.g., warnings, teleportation, bans).
+#   Default: 1 (Enabled)
+#
+KeepOutEnableContinuousCheck = 1

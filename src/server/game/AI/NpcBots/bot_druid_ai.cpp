@@ -80,7 +80,7 @@ enum DruidBaseSpells
     TREE_OF_LIFE_FORM_1                 = 33891,
     TRAVEL_FORM_1                       = 783,
     AQUATIC_FORM_1                      = 1066,
-    //FLIGHT_FORM_1                       = 0,//niy
+    FLIGHT_FORM_1                       = 33943,
     ABOLISH_POISON_1                    = 2893,//manual use only
     CURE_POISON_1                       = 8946,
     REMOVE_CURSE_1                      = 2782,
@@ -340,6 +340,9 @@ public:
                         break;
                     //case FORM_FLIGHT:
                     //case FORM_FLIGHT_EPIC:
+                    case DRUID_FLIGHT_FORM:
+                        me->RemoveAurasDueToSpell(GetSpell(FLIGHT_FORM_1));
+                        break;
                     default:
                         break;
                 }
@@ -774,8 +777,7 @@ public:
             else if (HasRole(BOT_ROLE_DPS))
             {
                 //pure dps goes moonkin
-                if (_form == DRUID_MOONKIN_FORM ||
-                    ((!GetSpell(MOONKIN_FORM_1) || HasRole(BOT_ROLE_HEAL)) && (_form == BOT_STANCE_NONE || removeShapeshiftForm())) ||
+                if (_form == DRUID_MOONKIN_FORM || HasRole(BOT_ROLE_HEAL) || !GetSpell(MOONKIN_FORM_1) ||
                     (!HasRole(BOT_ROLE_HEAL) && IsSpellReady(MOONKIN_FORM_1, diff, false) && doCast(me, GetSpell(MOONKIN_FORM_1))))
                     doBalanceActions(mytar, diff);
             }
@@ -967,8 +969,8 @@ public:
                 return;
 
             //Faerie Fire (Feral, Cat)
-            if (IsSpellReady(FAERIE_FIRE_FERAL_1, diff) && me->IsInCombat() && !me->HasAuraType(SPELL_AURA_MOD_STEALTH) &&
-                Rand() < 35 && me->GetDistance(mytar) < 30 &&
+            if (IsSpellReady(FAERIE_FIRE_FERAL_1, diff) && (mytar->IsControlledByPlayer() ? !mytar->IsInCombat() : me->IsInCombat()) && !me->HasAuraType(SPELL_AURA_MOD_STEALTH) &&
+                Rand() < ((mytar->GetClass() == CLASS_ROGUE || mytar->GetShapeshiftForm() == FORM_CAT) ? 35 : 10) && me->GetDistance(mytar) < 30 &&
                 !mytar->HasAuraTypeWithFamilyFlags(SPELL_AURA_MOD_RESISTANCE_PCT, SPELLFAMILY_DRUID, 0x400))
             {
                 if (doCast(mytar, GetSpell(FAERIE_FIRE_FERAL_1)))
@@ -998,7 +1000,7 @@ public:
                     {}
                 }
                 //Savage Roar
-                if (IsSpellReady(SAVAGE_ROAR_1, diff) && comboPoints >= 1 && (me->IsInCombat() || mytar->IsInCombat()) &&
+                if (IsSpellReady(SAVAGE_ROAR_1, diff) && comboPoints >= 1 && comboPoints <= 3 && (me->IsInCombat() || mytar->IsInCombat()) &&
                     !me->HasAuraType(SPELL_AURA_MOD_STEALTH) && energy >= acost(SAVAGE_ROAR_1) &&
                     !me->GetAuraEffect(SPELL_AURA_DUMMY, SPELLFAMILY_DRUID, 0, 0x10000000, 0))
                 {
@@ -1024,17 +1026,20 @@ public:
                         return;
                 }
             }
+
             //Tiger's Fury (no GCD) cannot use while Berserk is active
-            if (IsSpellReady(TIGERS_FURY_1, diff, false) && mytar->GetHealth() > me->GetHealth() / 4 &&
-                (me->GetLevel() < 55 || energy <= 40) && Rand() < 60 &&
+            if (IsSpellReady(TIGERS_FURY_1, diff, false) && mytar->GetHealth() > me->GetHealth() / 4 && (me->GetLevel() < 55 || energy <= 40) && Rand() < 80 &&
+                !me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_DRUID, 0x0, 0x200000, 0x0) &&
                 !me->GetAuraEffect(SPELL_AURA_MECHANIC_IMMUNITY, SPELLFAMILY_DRUID, 0x0, 0x0, 0x40))
             {
                 if (doCast(me, GetSpell(TIGERS_FURY_1)))
                     getenergy();
             }
+
             //Berserk can be used After Tiger's Fury without dispelling it
             //Berserk (Cat)
-            if (IsSpellReady(BERSERK_1, diff) && !HasRole(BOT_ROLE_HEAL) && (!me->HasAuraType(SPELL_AURA_MOD_STEALTH) || energy >= 40) && Rand() < 50 &&
+            if (IsSpellReady(BERSERK_1, diff) && Rand() < 80 && !IsSpellReady(TIGERS_FURY_1, diff, false) && (!HasRole(BOT_ROLE_HEAL) || me->HasAuraType(SPELL_AURA_MOD_FEAR)) &&
+                (!me->HasAuraType(SPELL_AURA_MOD_STEALTH) || energy >= 40 || me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_DRUID, 0x0, 0x200000, 0x0)) &&
                 (mytar->GetTypeId() == TYPEID_PLAYER || mytar->GetHealth() + 5000 > me->GetHealth()))
             {
                 if (doCast(me, GetSpell(BERSERK_1)))
@@ -1076,23 +1081,23 @@ public:
             if (comboPoints > 0)
             {
                 //Maim
-                if (IsSpellReady(MAIM_1, diff) && !CCed(mytar) && energy >= acost(MAIM_1) &&
-                    (comboPoints >= 4 || mytar->IsNonMeleeSpellCast(false,false,true)))
+                if (IsSpellReady(MAIM_1, diff) && !CCed(mytar) && mytar->GetHealth() > me->GetMaxHealth() / 8 && energy >= acost(MAIM_1) &&
+                    (comboPoints >= (mytar->IsNonMeleeSpellCast(false, false, true) ? 1 : (!!mytar->GetVictim() || mytar->IsControlledByPlayer()) ? 4 : 6)))
                 {
                     if (doCast(mytar, GetSpell(MAIM_1)))
                         return;
                 }
                 //Ferocious Bite
-                if (IsSpellReady(FEROCIOUS_BITE_1, diff) && (comboPoints >= 4 || mytar->GetHealth() < me->GetMaxHealth() / 4) &&
-                    energy >= acost(FEROCIOUS_BITE_1) && Rand() < (50 + comboPoints * 20))
+                if (IsSpellReady(FEROCIOUS_BITE_1, diff) && Rand() < (50 + comboPoints * 20) &&
+                    ((comboPoints >= 4 && mytar->IsControlledByPlayer()) || mytar->GetHealth() < me->GetMaxHealth() / std::max<int32>(1, 6 - comboPoints)) &&
+                    energy >= acost(FEROCIOUS_BITE_1))
                 {
                     if (doCast(mytar, GetSpell(FEROCIOUS_BITE_1)))
                         return;
                 }
                 //Rip
-                if (IsSpellReady(RIP_1, diff) && (comboPoints >= 3 || !GetSpell(FEROCIOUS_BITE_1)) &&
-                    energy >= acost(RIP_1) && mytar->GetHealth() > me->GetMaxHealth() / 5 &&
-                    Rand() < (75 + 40 * (mytar->GetTypeId() == TYPEID_PLAYER && IsMeleeClass(mytar->GetClass()))) &&
+                if (IsSpellReady(RIP_1, diff) && comboPoints >= (mytar->IsControlledByPlayer() ? 4 : 5) && Rand() < 90 &&
+                    mytar->GetHealth() > me->GetMaxHealth() / (mytar->IsControlledByPlayer() ? 4 : 2) && energy >= acost(RIP_1) &&
                     !mytar->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_DRUID, 0x800000, 0x0, 0x0, me->GetGUID()))
                 {
                     if (doCast(mytar, GetSpell(RIP_1)))
@@ -1110,30 +1115,34 @@ public:
                     if (doCast(mytar, GetSpell(SWIPE_CAT_1)))
                         return;
             }
+
             //Shred
-            if (IsSpellReady(SHRED_1, diff) && comboPoints < 4 && energy >= acost(SHRED_1) && Rand() < 85 &&
+            if (IsSpellReady(SHRED_1, diff) && ((Rand() < 70 && energy >= acost(SHRED_1)) || !!me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_DRUID, 0x0, 0x200000, 0x0)) &&
                 !mytar->HasInArc(float(M_PI), me))
             {
                 if (doCast(mytar, GetSpell(SHRED_1)))
                     return;
             }
+
             //Rake
-            if (IsSpellReady(RAKE_1, diff) && comboPoints < 3 && energy >= acost(RAKE_1) && Rand() < 95 &&
+            if (IsSpellReady(RAKE_1, diff) && (comboPoints <= (mytar->IsControlledByPlayer() ? 4 : 5)) && Rand() < 100 && energy >= acost(RAKE_1) &&
                 !mytar->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_DRUID, 0x1000, 0x0, 0x0, me->GetGUID()))
             {
                 if (doCast(mytar, GetSpell(RAKE_1)))
                     return;
             }
+
             //Mangle (Cat)
             if (IsSpellReady(MANGLE_CAT_1, diff) && comboPoints < 5 && energy >= acost(MANGLE_CAT_1) &&
-                (Rand() < 20 || !mytar->GetAuraEffect(SPELL_AURA_MOD_MECHANIC_DAMAGE_TAKEN_PERCENT, SPELLFAMILY_DRUID, 0x0, 0x400, 0x0)))
+                !me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_DRUID, 0x0, 0x200000, 0x0) &&
+                !mytar->GetAuraEffect(SPELL_AURA_MOD_MECHANIC_DAMAGE_TAKEN_PERCENT, SPELLFAMILY_DRUID, 0x0, 0x400, 0x0))
             {
                 if (doCast(mytar, GetSpell(MANGLE_CAT_1)))
                     return;
             }
+
             //Claw
-            if (IsSpellReady(CLAW_1, diff) && comboPoints < 5 && Rand() < 50 && (!GetSpell(SHRED_1) || mytar->HasInArc(float(M_PI), me)) &&
-                energy >= acost(CLAW_1))
+            if (IsSpellReady(CLAW_1, diff) && comboPoints < 5 && Rand() < 40 && energy >= acost(CLAW_1) && (!GetSpell(SHRED_1) || mytar->HasInArc(float(M_PI), me)))
             {
                 if (doCast(mytar, GetSpell(CLAW_1)))
                     return;
@@ -1142,10 +1151,6 @@ public:
 
         void doBalanceActions(Unit* mytar, uint32 diff)
         {
-            //debug
-            if (me->GetPowerType() != POWER_MANA)
-                return;
-
             MoveBehind(mytar);
 
             if (HasRole(BOT_ROLE_HEAL) && GetManaPCT(me) < 25)
@@ -1271,9 +1276,9 @@ public:
                     case DRUID_CAT_FORM:     sshift = GetSpell(CAT_FORM_1);         break;
                     case DRUID_MOONKIN_FORM: sshift = GetSpell(MOONKIN_FORM_1);     break;
                     case DRUID_TREE_FORM:    sshift = GetSpell(TREE_OF_LIFE_FORM_1);break;
-                    //case DRUID_FLIGHT_FORM:  sshift = GetSpell(FLIGHT_FORM_1);      break;
                     case DRUID_TRAVEL_FORM:  sshift = GetSpell(TRAVEL_FORM_1);      break;
                     case DRUID_AQUATIC_FORM: sshift = GetSpell(AQUATIC_FORM_1);     break;
+                    case DRUID_FLIGHT_FORM:  sshift = GetSpell(FLIGHT_FORM_1);      break;
                     case BOT_STANCE_NONE:    sshift = GetSpell(TRAVEL_FORM_1);      break;
                     default:                 sshift = 0;                            break;
                 }
@@ -1760,13 +1765,13 @@ public:
                         me->SetPowerType(POWER_MANA);
                     }
                     break;
-                //case DRUID_FLIGHT_FORM:
-                //    if (me->GetPowerType() != POWER_MANA)
-                //    {
-                //        //TC_LOG_ERROR("entities.player", "druid_bot::setStats(): has to set powerType to POWER_MANA (flight)");
-                //        me->SetPowerType(POWER_MANA);
-                //    }
-                //    break;
+                case DRUID_FLIGHT_FORM:
+                    if (me->GetPowerType() != POWER_MANA)
+                    {
+                        //TC_LOG_ERROR("entities.player", "druid_bot::setStats(): has to set powerType to POWER_MANA (flight)");
+                        me->SetPowerType(POWER_MANA);
+                    }
+                    break;
                 case BOT_STANCE_NONE:
                     if (me->GetPowerType() != POWER_MANA)
                     {
@@ -1981,7 +1986,7 @@ public:
 
             //100% mods
             //Clearcasting: -100% mana/rage/energy cost for any spell
-            if (AuraEffect const* eff = me->GetAuraEffect(OMEN_OF_CLARITY_BUFF, 0, me->GetGUID()))
+            if (AuraEffect const* eff = me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_DRUID, 0x0, 0x200000, 0x0))
                 if (eff->IsAffectedOnSpell(spellInfo))
                     pctbonus += 1.0f;
 
@@ -2258,7 +2263,7 @@ public:
 
             //Handle clearcasting
             //Notes: bugged with hurricane (periodic)
-            if (AuraEffect const* eff = me->GetAuraEffect(OMEN_OF_CLARITY_BUFF, 0, me->GetGUID()))
+            if (AuraEffect const* eff = me->GetAuraEffect(SPELL_AURA_ADD_PCT_MODIFIER, SPELLFAMILY_DRUID, 0x0, 0x200000, 0x0))
                 if (eff->IsAffectedOnSpell(spellInfo) && !spellInfo->IsRankOf(sSpellMgr->GetSpellInfo(HURRICANE_DAMAGE_1)))
                     me->RemoveAurasDueToSpell(OMEN_OF_CLARITY_BUFF);
 
@@ -2556,8 +2561,8 @@ public:
                 setStats(DRUID_TRAVEL_FORM);
             else if (baseId == AQUATIC_FORM_1)
                 setStats(DRUID_AQUATIC_FORM);
-            //else if (baseId == FLIGHT_FORM_1)
-            //    setStats(DRUID_FLIGHT_FORM);
+            else if (baseId == FLIGHT_FORM_1)
+                setStats(DRUID_FLIGHT_FORM);
 
             //Cat Form: delay prowl just a little bit
             if (baseId == CAT_FORM_1 && GetSpell(PROWL_1) && GetSpellCooldown(PROWL_1) < 300)
@@ -2820,6 +2825,7 @@ public:
             InitSpellMap(FAERIE_FIRE_NORMAL_1);
             InitSpellMap(TRAVEL_FORM_1);
             InitSpellMap(AQUATIC_FORM_1);
+            InitSpellMap(FLIGHT_FORM_1);
             InitSpellMap(CURE_POISON_1);
             InitSpellMap(ABOLISH_POISON_1);
             InitSpellMap(REMOVE_CURSE_1);
@@ -2930,6 +2936,8 @@ public:
                     return true;
                 case AQUATIC_FORM_1:
                     return me->HasUnitMovementFlag(MOVEMENTFLAG_SWIMMING) && me->IsUnderWater();
+                case FLIGHT_FORM_1:
+                    return master->IsMounted() && !me->HasUnitMovementFlag(MOVEMENTFLAG_SWIMMING) && !me->IsUnderWater();
                 case TYPHOON_1:
                 case STARFALL_1:
                 case MOONKIN_FORM_1:

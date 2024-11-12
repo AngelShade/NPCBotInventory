@@ -2186,6 +2186,7 @@ public:
             RefreshAura(12287, isProt && level >= 11 && level < 12 ? 1 : 0);  // Improved Thunder Clap Rank 1
             RefreshAura(12665, isProt && level >= 12 && level < 13 ? 1 : 0);  // Improved Thunder Clap Rank 2
             RefreshAura(12666, isProt && level >= 13 ? 1 : 0);                // Improved Thunder Clap Rank 3
+            RefreshAura(855057, isProt && level >= 45 ? 1 : 0);               // Unbreakable Will
 
             RefreshAura(GLYPH_HEROIC_STRIKE, level >= 15 ? 1 : 0);
             RefreshAura(GLYPH_REVENGE, level >= 15 ? 1 : 0);

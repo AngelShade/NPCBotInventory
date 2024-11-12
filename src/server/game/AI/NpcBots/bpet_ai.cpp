@@ -1538,7 +1538,7 @@ Unit* bot_pet_ai::_getTarget(bool &reset) const
         return u;
     }
 
-    uint8 followdist = IAmFree() ? BotMgr::GetBotFollowDistDefault() : petOwner->GetBotOwner()->GetBotMgr()->GetBotFollowDist();
+    uint8 followdist = IAmFree() ? BotMgr::GetBotFollowDistMax() : petOwner->GetBotOwner()->GetBotMgr()->GetBotFollowDist();
 
     if (followdist == 0)
         return nullptr;
@@ -1605,7 +1605,7 @@ bool bot_pet_ai::CheckAttackTarget()
 //Ranged attack position
 void bot_pet_ai::CalculateAttackPos(Unit* target, Position& pos) const
 {
-    uint8 followdist = IAmFree() ? BotMgr::GetBotFollowDistDefault() : petOwner->GetBotOwner()->GetBotMgr()->GetBotFollowDist();
+    uint8 followdist = IAmFree() ? BotMgr::GetBotFollowDistMax() : petOwner->GetBotOwner()->GetBotMgr()->GetBotFollowDist();
     uint8 rangeMode = IAmFree() ? uint8(BOT_ATTACK_RANGE_LONG) : petOwner->GetBotOwner()->GetBotMgr()->GetBotAttackRangeMode();
     uint8 exactRange = rangeMode != BOT_ATTACK_RANGE_EXACT || IAmFree() ? 255 : petOwner->GetBotOwner()->GetBotMgr()->GetBotExactAttackRange();
     Position ppos;
@@ -1666,7 +1666,7 @@ void bot_pet_ai::GetInPosition(bool force, Unit* newtarget, Position* mypos)
         return;
     }
 
-    uint8 followdist = IAmFree() ? BotMgr::GetBotFollowDistDefault() : petOwner->GetBotOwner()->GetBotMgr()->GetBotFollowDist();
+    uint8 followdist = IAmFree() ? BotMgr::GetBotFollowDistMax() : petOwner->GetBotOwner()->GetBotMgr()->GetBotFollowDist();
     if (!IsPetMelee())
     {
         //do not allow constant runaway from player
@@ -2279,7 +2279,7 @@ void bot_pet_ai::DamageDealt(Unit* victim, uint32& damage, DamageEffectType /*da
 
             //controlled case is handled in Unit::DealDamage
             if (IAmFree())
-                cre->LowerPlayerDamageReq(cre->GetHealth() < damage ?  cre->GetHealth() : damage);
+                cre->LowerPlayerDamageReq(std::min<uint32>(cre->GetHealth(), damage) / (BotMgr::IsWanderingWorldBot(me) ? 4 : 2));
         }
     }
 }

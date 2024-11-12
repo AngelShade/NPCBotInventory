@@ -533,6 +533,7 @@ typedef std::map<std::pair<std::string, uint32>, ModuleString> ModuleStringConta
 typedef std::unordered_map<int32, AcoreString> AcoreStringContainer;
 typedef std::unordered_map<uint32, GossipMenuItemsLocale> GossipMenuItemsLocaleContainer;
 typedef std::unordered_map<uint32, PointOfInterestLocale> PointOfInterestLocaleContainer;
+typedef std::unordered_map<uint32, VehicleSeatAddon> VehicleSeatAddonContainer;
 
 typedef std::multimap<uint32, uint32> QuestRelations;
 typedef std::pair<QuestRelations::const_iterator, QuestRelations::const_iterator> QuestRelationBounds;
@@ -1067,6 +1068,7 @@ public:
     void LoadMailServerTemplates();
     void LoadVehicleTemplateAccessories();
     void LoadVehicleAccessories();
+    void LoadVehicleSeatAddon();
 
     void LoadGossipText();
 
@@ -1453,6 +1455,15 @@ public:
 
     [[nodiscard]] bool IsTransportMap(uint32 mapId) const { return _transportMaps.count(mapId) != 0; }
 
+    VehicleSeatAddon const* GetVehicleSeatAddon(uint32 seatId) const
+    {
+        VehicleSeatAddonContainer::const_iterator itr = _vehicleSeatAddonStore.find(seatId);
+        if (itr == _vehicleSeatAddonStore.end())
+            return nullptr;
+
+        return &itr->second;
+    }
+
     [[nodiscard]] uint32 GetQuestMoneyReward(uint8 level, uint32 questMoneyDifficulty) const;
     void SendServerMail(Player* player, uint32 id, uint32 reqLevel, uint32 reqPlayTime, uint32 rewardMoneyA, uint32 rewardMoneyH, uint32 rewardItemA, uint32 rewardItemCountA, uint32 rewardItemH, uint32 rewardItemCountH, std::string subject, std::string body, uint8 active) const;
     JumpChargeParams const* GetJumpChargeParams(int32 id) const;
@@ -1532,6 +1543,7 @@ private:
 
     VehicleAccessoryContainer _vehicleTemplateAccessoryStore;
     VehicleAccessoryContainer _vehicleAccessoryStore;
+    VehicleSeatAddonContainer _vehicleSeatAddonStore;
 
     LocaleConstant DBCLocaleIndex;
 
