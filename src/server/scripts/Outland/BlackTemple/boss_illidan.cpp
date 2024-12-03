@@ -575,29 +575,32 @@ struct boss_illidan_stormrage : public BossAI
                 }, 60s);
         }
         break;
-        case PHASE_DEMON:
-        {
-            scheduler.CancelAll();
-            DoCastSelf(SPELL_SUMMON_SHADOW_DEMON, true);
+            case PHASE_DEMON:
+            {
+                scheduler.CancelAll();
 
-            ScheduleTimedEvent(1s, 2500ms, [&] {
-                DoCastVictim(SPELL_SHADOW_BLAST);
+                ScheduleTimedEvent(30s, [&] {
+                    DoCastSelf(SPELL_SUMMON_SHADOW_DEMON, true);
+                }, 100s);
+
+                ScheduleTimedEvent(1s, 2500ms, [&] {
+                    DoCastVictim(SPELL_SHADOW_BLAST);
                 }, 2500ms);
 
-            ScheduleTimedEvent(7s, [&] {
-                DoCastSelf(SPELL_FLAME_BURST);
+                ScheduleTimedEvent(7s, [&] {
+                    DoCastSelf(SPELL_FLAME_BURST);
                 }, 19500ms);
 
-            me->m_Events.AddEventAtOffset([&] {
-                DoAction(ACTION_ILLIDAN_DEMON_TRANSFORM_BACK);
-                if (summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
-                    ScheduleAbilities(PHASE_MAIEV);
-                else
-                    ScheduleAbilities(PHASE_LANDING);
-                DoResetThreatList();
+                me->m_Events.AddEventAtOffset([&] {
+                    DoAction(ACTION_ILLIDAN_DEMON_TRANSFORM_BACK);
+                    if (summons.GetCreatureWithEntry(NPC_MAIEV_SHADOWSONG))
+                        ScheduleAbilities(PHASE_MAIEV);
+                    else
+                        ScheduleAbilities(PHASE_LANDING);
+                    DoResetThreatList();
                 }, 60s);
-        }
-        break;
+            }
+            break;
         case PHASE_MAIEV:
         {
             ScheduleAbilities(PHASE_LANDING);
@@ -1239,7 +1242,7 @@ struct npc_parasitic_shadowfiend : public ScriptedAI
 
     bool CanAIAttack(Unit const* who) const override
     {
-        return !who->HasAura(SPELL_PARASITIC_SHADOWFIEND) && !who->HasAura(SPELL_PARASITIC_SHADOWFIEND_TRIGGER);
+        return !who->HasAura(SPELL_PARASITIC_SHADOWFIEND) && !who->HasAura(SPELL_PARASITIC_SHADOWFIEND_TRIGGER) && who->IsPlayer();
     }
 
     void EnterEvadeMode(EvadeReason /*why*/) override

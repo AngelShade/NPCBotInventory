@@ -144,21 +144,21 @@ GroupQueueInfo* BattlegroundQueue::AddGroup(Player* leader, Group* group, Battle
     BattlegroundBracketId bracketId = bracketEntry->GetBracketId();
 
     // create new ginfo
-    auto* ginfo                         = new GroupQueueInfo;
-    ginfo->BgTypeId                     = bgTypeId;
-    ginfo->ArenaType                    = arenaType;
-    ginfo->ArenaTeamId                  = arenaTeamId;
-    ginfo->IsRated                      = isRated;
-    ginfo->IsInvitedToBGInstanceGUID    = 0;
-    ginfo->JoinTime                     = GameTime::GetGameTimeMS().count();
-    ginfo->RemoveInviteTime             = 0;
-    ginfo->teamId                       = leader->GetTeamId();
-    ginfo->RealTeamID                   = leader->GetTeamId(true);
-    ginfo->ArenaTeamRating              = arenaRating;
-    ginfo->ArenaMatchmakerRating        = matchmakerRating;
-    ginfo->PreviousOpponentsTeamId      = opponentsArenaTeamId;
-    ginfo->OpponentsTeamRating          = 0;
-    ginfo->OpponentsMatchmakerRating    = 0;
+    auto* ginfo = new GroupQueueInfo;
+    ginfo->BgTypeId = bgTypeId;
+    ginfo->ArenaType = arenaType;
+    ginfo->ArenaTeamId = arenaTeamId;
+    ginfo->IsRated = isRated;
+    ginfo->IsInvitedToBGInstanceGUID = 0;
+    ginfo->JoinTime = GameTime::GetGameTimeMS().count();
+    ginfo->RemoveInviteTime = 0;
+    ginfo->teamId = leader->GetTeamId();
+    ginfo->RealTeamID = leader->GetTeamId(true);
+    ginfo->ArenaTeamRating = arenaRating;
+    ginfo->ArenaMatchmakerRating = matchmakerRating;
+    ginfo->PreviousOpponentsTeamId = opponentsArenaTeamId;
+    ginfo->OpponentsTeamRating = 0;
+    ginfo->OpponentsMatchmakerRating = 0;
 
     ginfo->Players.clear();
 
@@ -184,11 +184,11 @@ GroupQueueInfo* BattlegroundQueue::AddGroup(Player* leader, Group* group, Battle
     if (group)
     {
         group->DoForAllMembers([this, ginfo](Player* member)
-        {
-            ASSERT(m_QueuedPlayers.count(member->GetGUID()) == 0);
-            m_QueuedPlayers[member->GetGUID()] = ginfo;
-            ginfo->Players.emplace(member->GetGUID());
-        });
+            {
+                ASSERT(m_QueuedPlayers.count(member->GetGUID()) == 0);
+                m_QueuedPlayers[member->GetGUID()] = ginfo;
+                ginfo->Players.emplace(member->GetGUID());
+            });
         //npcbot: queue bots (bg only)
         if (!arenaTeamId)
         {
@@ -225,15 +225,6 @@ GroupQueueInfo* BattlegroundQueue::AddGroup(Player* leader, Group* group, Battle
 
     //npcbot: try to queue wandering bots
     if (!isRated && !isPremade && !arenaType && !arenaTeamId && !sBattlegroundMgr->isTesting())
-    {
-        if (!BotDataMgr::GenerateBattlegroundBots(leader, group, this, bracketEntry, ginfo))
-        {
-            LOG_WARN("npcbots", "Did NOT generate bots for BG {} for leader {} ({} members)",
-                uint32(bgTypeId), leader->GetDebugInfo().c_str(), group ? group->GetMembersCount() : 0u);
-        }
-    }
-    // Ornfelt: Arena:
-    else if (!isRated && arenaType && !sBattlegroundMgr->isTesting() && !leader->GetGroup()) // Don't allow group queue
     {
         if (!BotDataMgr::GenerateBattlegroundBots(leader, group, this, bracketEntry, ginfo))
         {

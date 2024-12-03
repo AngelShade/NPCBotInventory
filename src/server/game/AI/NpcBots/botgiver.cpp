@@ -354,7 +354,7 @@ public:
                     if (!bot)
                     {
                         // Possible but still
-                        LOG_ERROR("entities.unit", "HIRE_NBOT_ENTRY: bot {} not found!", entry);
+                        BOT_LOG_ERROR("entities.unit", "HIRE_NBOT_ENTRY: bot {} not found!", entry);
                         break;
                     }
 

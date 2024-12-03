@@ -150,6 +150,7 @@ class bot_ai : public CreatureAI
         void ApplyBotCritMultiplierAll(Unit const* victim, float& crit_chance, SpellInfo const* spellInfo, SpellSchoolMask schoolMask, WeaponAttackType attackType) const;
         void ApplyBotSpellCostMods(SpellInfo const* spellInfo, int32& cost) const;
         void ApplyBotSpellCastTimeMods(SpellInfo const* spellInfo, int32& casttime) const;
+        void ApplyBotSpellNotLoseCastTimeMods(SpellInfo const* spellInfo, int32& delayReduce) const;
         void ApplyBotSpellCooldownMods(SpellInfo const* spellInfo, uint32& cooldown) const;
         void ApplyBotSpellCategoryCooldownMods(SpellInfo const* spellInfo, uint32& cooldown) const;
         void ApplyBotSpellGlobalCooldownMods(SpellInfo const* spellInfo, float& cooldown) const;
@@ -179,6 +180,9 @@ class bot_ai : public CreatureAI
         //wandering bots
         bool IsWanderer() const { return _wanderer; }
         void SetWanderer();
+        static bool IsWanderNodeAvailableForBotFaction(WanderNode const* wp, uint32 factionTemplateId, bool teleport);
+        WanderNode const* GetClosestWanderNode() const;
+        WanderNode const* GetNextWanderNode(Position const* fromPos, uint8 lvl, bool random) const;
         WanderNode const* GetNextTravelNode(Position const* from, bool random) const;
         WanderNode const* GetNextBGTravelNode() const;
         void OnWanderNodeReached();
@@ -285,6 +289,7 @@ class bot_ai : public CreatureAI
         void OnBotOwnerSpellGo(Spell const* spell, bool ok = true);
         void OnBotChannelFinish(Spell const* spell);
         void OnOwnerVehicleDamagedBy(Unit* attacker);
+        void OnAttackStop(Unit const* target);
         virtual void OnClassSpellStart(SpellInfo const* /*spellInfo*/) {}
         virtual void OnClassSpellGo(SpellInfo const* /*spell*/) {}
         virtual void OnClassChannelFinish(Spell const* /*spell*/) {}
@@ -486,6 +491,7 @@ class bot_ai : public CreatureAI
         virtual void ApplyClassSpellCritMultiplierAll(Unit const* /*victim*/, float& /*crit_chance*/, SpellInfo const* /*spellInfo*/, SpellSchoolMask /*schoolMask*/, WeaponAttackType /*attackType*/) const {}
         virtual void ApplyClassSpellCostMods(SpellInfo const* /*spellInfo*/, int32& /*cost*/) const {}
         virtual void ApplyClassSpellCastTimeMods(SpellInfo const* /*spellInfo*/, int32& /*casttime*/) const {}
+        virtual void ApplyClassSpellNotLoseCastTimeMods(SpellInfo const* /*spellInfo*/, int32& /*delayReduce*/) const {}
         virtual void ApplyClassSpellCooldownMods(SpellInfo const* /*spellInfo*/, uint32& /*cooldown*/) const {}
         virtual void ApplyClassSpellCategoryCooldownMods(SpellInfo const* /*spellInfo*/, uint32& /*cooldown*/) const {}
         virtual void ApplyClassSpellGlobalCooldownMods(SpellInfo const* /*spellInfo*/, float& /*cooldown*/) const {}

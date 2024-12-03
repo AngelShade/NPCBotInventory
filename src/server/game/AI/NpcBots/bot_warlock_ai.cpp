@@ -293,7 +293,6 @@ public:
                     return;
             }
 
-            //TODO: soulstone on self/bots
             //BUG: players cannot accept this buff if they are below lvl 20 (should be 8)
             if (hasSoulstone && soulstoneTimer <= diff && GetSpell(CREATE_SOULSTONE_1))
             {
@@ -308,7 +307,7 @@ public:
                             break;
                         for (Unit* member : all_members)
                         {
-                            if ((i >= 2 || (i == 0 ? member->IsPlayer() : member->IsNPCBot())) && me->GetMap() == member->FindMap() &&
+                            if ((i >= 2 || (i == 0 ? member->IsPlayer() : (member->IsNPCBot() && !GetBG()))) && me->GetMap() == member->FindMap() &&
                                 member->IsAlive() && !member->isPossessed() && !member->IsCharmed() &&
                                 !(member->IsNPCBot() && member->ToCreature()->IsTempBot()) &&
                                 me->GetDistance(member) < 30 && !member->GetDummyAuraEffect(SPELLFAMILY_GENERIC, 92, 0))
@@ -323,13 +322,13 @@ public:
                     }
                 }
 
-                if (targets.empty() && master->IsAlive() && !master->isPossessed() && !master->IsCharmed() &&
+                if (targets.empty() && master->IsAlive() && !master->isPossessed() && !master->IsCharmed() && !(GetBG() && IsWanderer()) &&
                     me->GetDistance(master) < 30 && !master->GetDummyAuraEffect(SPELLFAMILY_GENERIC, 92, 0))
                     targets.push_back(master);
 
                 if (!targets.empty())
                 {
-                    Unit* target = targets.size() == 1 ? targets.front() : Acore::Containers::SelectRandomContainerElement(targets);
+                    Unit* target = targets.size() == 1 ? targets.front() : Bcore::Containers::SelectRandomContainerElement(targets);
                     SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(CREATE_SOULSTONE_1);
                     uint32 rank = spellInfo->GetRank();
 
@@ -350,7 +349,7 @@ public:
                         case 27238: spellId = SOULSTONE_RESURRECTION_6; break; //rank 6
                         case 47884: spellId = SOULSTONE_RESURRECTION_7; break; //rank 7
                         default:
-                            LOG_ERROR("entities.player", "bot_warlockAI: unknown soulstone Id {}", spellInfo->Id);
+                            BOT_LOG_ERROR("entities.player", "bot_warlockAI: unknown soulstone Id {}", spellInfo->Id);
                             spellId = SOULSTONE_RESURRECTION_1;
                             break;
                     }
@@ -1371,6 +1370,32 @@ public:
             instaCast = (casttime <= 500); //triggered GCD is too long
         }
 
+        void ApplyClassSpellNotLoseCastTimeMods(SpellInfo const* spellInfo, int32& delayReduce) const override
+        {
+            uint32 baseId = spellInfo->GetFirstRankSpell()->Id;
+            //SpellSchoolMask schools = spellInfo->GetSchoolMask();
+            uint8 lvl = me->GetLevel();
+            int32 reduceBonus = 0;
+
+            if (lvl >= 20 && (/*baseId == DRAIN_LIFE_1 || */baseId == DRAIN_MANA_1 || baseId == DRAIN_SOUL_1 || baseId == UNSTABLE_AFFLICTION_1 || baseId == HAUNT_1))
+                reduceBonus += 70;
+
+            if (GetSpec() == BOT_SPEC_WARLOCK_DESTRUCTION && lvl >= 25)
+            {
+                switch (baseId)
+                {
+                    case CHAOS_BOLT_1: case HELLFIRE_1: case IMMOLATE_1: case INCINERATE_1: case RAIN_OF_FIRE_1:
+                    case SEARING_PAIN_1: case SHADOW_BOLT_1: case SOUL_FIRE_1: case SHADOWBURN_1: case SHADOWFURY_1:
+                        reduceBonus += 70;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            delayReduce += reduceBonus;
+        }
+
         void ApplyClassSpellCooldownMods(SpellInfo const* /*spellInfo*/, uint32& cooldown) const override
         {
             //cooldown is in milliseconds
@@ -1857,7 +1882,7 @@ public:
         void SummonedCreatureDespawn(Creature* summon) override
         {
             //all warlock bot pets despawn at death or manually (gossip, teleport, etc.)
-            //TC_LOG_ERROR("entities.unit", "SummonedCreatureDespawn: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
+            //BOT_LOG_ERROR("entities.unit", "SummonedCreatureDespawn: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
             if (summon == botPet)
             {
                 petSummonTimer = 10000;

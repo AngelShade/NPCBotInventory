@@ -414,8 +414,8 @@ public:
                     for (Unit* member : members)
                     {
                         if (!(i == 0 ? member->IsPlayer() : member->IsNPCBot()) || me->GetMap() != member->FindMap() ||
-                            !member->IsAlive() || me->GetDistance(member) > 40 || member->isPossessed() || member->IsCharmed() || 
-                            member->getAttackers().empty() || (!IsTank(member) && GetHealthPCT(member) > 75) ||
+                            !member->IsAlive() || me->GetDistance(member) > 40 || member->isPossessed() || member->IsCharmed() ||
+                            member->getAttackers().empty() || (!IsTank(member) && !IsFlagCarrier(member) && GetHealthPCT(member) > 75) ||
                             (member->IsNPCBot() && member->ToCreature()->IsTempBot()) ||
                             member->GetAuraEffect(SPELL_AURA_DUMMY, SPELLFAMILY_PALADIN, 0x0, 0x80000, 0x0))
                             continue;
@@ -659,7 +659,6 @@ public:
             {
                 SummonBotPet(mytar);
                 SetSpellCooldown(SHADOWFIEND_1, 180000); // (5 - 2) min with Veiled Shadows
-                return;
             }
 
             if (!HasRole(BOT_ROLE_HEAL) || GetManaPCT(me) > 35 || botPet)
@@ -673,8 +672,8 @@ public:
                     !mytar->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_PRIEST, 0x0, 0x400, 0x0, me->GetGUID()) &&
                     doCast(mytar, GetSpell(VAMPIRIC_TOUCH_1)))
                     return;
-                if (IsSpellReady(SW_PAIN_1, diff) && can_do_shadow && Rand() < 60 &&
-                    mytar->GetHealth() > me->GetMaxHealth() / 2 * (1 + mytar->getAttackers().size()) &&
+                if (IsSpellReady(SW_PAIN_1, diff) && can_do_shadow && Rand() < 100 &&
+                    mytar->GetHealth() > me->GetMaxHealth()/2 * (1 + mytar->getAttackers().size()) &&
                     !mytar->GetAuraEffect(SPELL_AURA_PERIODIC_DAMAGE, SPELLFAMILY_PRIEST, 0x8000, 0x0, 0x0, me->GetGUID()))
                 {
                     AuraEffect const* weav = me->GetAuraEffect(SPELL_AURA_MOD_DAMAGE_PERCENT_DONE, SPELLFAMILY_PRIEST, 0x0, 0x8, 0x0);
@@ -682,7 +681,7 @@ public:
                         if (doCast(mytar, GetSpell(SW_PAIN_1)))
                             return;
                 }
-                if (IsSpellReady(DEVOURING_PLAGUE_1, diff) && can_do_shadow && !Devcheck && Rand() < 80 &&
+                if (IsSpellReady(DEVOURING_PLAGUE_1, diff) && can_do_shadow && !Devcheck && Rand() < 100 &&
                     (GetSpec() == BOT_SPEC_PRIEST_SHADOW || mytar->IsControlledByPlayer()) &&
                     mytar->GetHealth() > me->GetMaxHealth() / 2 * (1 + mytar->getAttackers().size()) &&
                     !(mytar->GetTypeId() == TYPEID_UNIT && (mytar->ToCreature()->GetCreatureTemplate()->MechanicImmuneMask & (1 << (MECHANIC_INFECTED - 1)))) &&
@@ -740,7 +739,7 @@ public:
             int32 hppctps = int32(hps * 100.f / float(target->GetMaxHealth()));
             int32 xphploss = xphp > int32(target->GetMaxHealth()) ? 0 : abs(int32(xphp - target->GetMaxHealth()));
             int32 xppct = hp + hppctps * (me->GetLevel() < 60 ? 2.5f : 2.0f);
-            //TC_LOG_ERROR("entities.player", "priest_bot:HealTarget(): %s's pct %u, hppctps %i, epct %i",
+            //BOT_LOG_ERROR("entities.player", "priest_bot:HealTarget(): %s's pct %u, hppctps %i, epct %i",
             //    target->GetName().c_str(), uint32(hp), int32(hppctps), int32(xppct));
             if (xppct >= 95 && hp >= 25 && !pointed)
                 return false;
@@ -1796,6 +1795,28 @@ public:
             casttime = std::max<int32>((float(casttime) * (1.0f - pctbonus)) - timebonus, 0);
         }
 
+        void ApplyClassSpellNotLoseCastTimeMods(SpellInfo const* spellInfo, int32& delayReduce) const override
+        {
+            uint32 baseId = spellInfo->GetFirstRankSpell()->Id;
+            //SpellSchoolMask schools = spellInfo->GetSchoolMask();
+            uint8 lvl = me->GetLevel();
+            int32 reduceBonus = 0;
+
+            if (lvl >= 10)
+            {
+                switch (baseId)
+                {
+                    case FLASH_HEAL_1: case LESSER_HEAL_1: case NORMAL_HEAL_1: case GREATER_HEAL_1: case PRAYER_OF_HEALING_1: case PENANCE_1: case DIVINE_HYMN_1:
+                        reduceBonus += 70;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            delayReduce += reduceBonus;
+        }
+
         void ApplyClassSpellCooldownMods(SpellInfo const* spellInfo, uint32& cooldown) const override
         {
             //cooldown is in milliseconds
@@ -2151,7 +2172,7 @@ public:
 
         void SummonedCreatureDespawn(Creature* summon) override
         {
-            //TC_LOG_ERROR("entities.unit", "SummonedCreatureDespawn: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
+            //BOT_LOG_ERROR("entities.unit", "SummonedCreatureDespawn: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
             if (summon == botPet)
                 botPet = nullptr;
         }

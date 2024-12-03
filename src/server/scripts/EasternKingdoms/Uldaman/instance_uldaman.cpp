@@ -24,13 +24,13 @@
 
 enum Spells
 {
-    SPELL_ARCHAEDAS_AWAKEN      = 10347,
-    SPELL_AWAKEN_VAULT_WALKER   = 10258,
+    SPELL_ARCHAEDAS_AWAKEN = 10347,
+    SPELL_AWAKEN_VAULT_WALKER = 10258,
 };
 
 enum Events
 {
-    EVENT_SUB_BOSS_AGGRO        = 2228
+    EVENT_SUB_BOSS_AGGRO = 2228
 };
 
 class instance_uldaman : public InstanceMapScript
@@ -52,26 +52,26 @@ public:
         {
             switch (gameobject->GetEntry())
             {
-                case GO_IRONAYA_SEAL_DOOR:
-                case GO_KEYSTONE:
-                    if (_encounters[DATA_IRONAYA_DOORS] == DONE)
-                    {
-                        HandleGameObject(ObjectGuid::Empty, true, gameobject);
-                        gameobject->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
-                    }
-                    break;
-                case GO_TEMPLE_DOOR:
-                    if (_encounters[DATA_STONE_KEEPERS] == DONE)
-                        HandleGameObject(ObjectGuid::Empty, true, gameobject);
-                    break;
-                case GO_ANCIENT_VAULT_DOOR:
-                    ancientVaultDoorGUID = gameobject->GetGUID();
-                    if (_encounters[DATA_ARCHAEDAS] == DONE)
-                        HandleGameObject(ObjectGuid::Empty, true, gameobject);
-                    break;
-                case GO_ARCHAEDAS_TEMPLE_DOOR:
-                    archaedasTempleDoorGUID = gameobject->GetGUID();
-                    break;
+            case GO_IRONAYA_SEAL_DOOR:
+            case GO_KEYSTONE:
+                if (_encounters[DATA_IRONAYA_DOORS] == DONE)
+                {
+                    HandleGameObject(ObjectGuid::Empty, true, gameobject);
+                    gameobject->SetGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
+                }
+                break;
+            case GO_TEMPLE_DOOR:
+                if (_encounters[DATA_STONE_KEEPERS] == DONE)
+                    HandleGameObject(ObjectGuid::Empty, true, gameobject);
+                break;
+            case GO_ANCIENT_VAULT_DOOR:
+                ancientVaultDoorGUID = gameobject->GetGUID();
+                if (_encounters[DATA_ARCHAEDAS] == DONE)
+                    HandleGameObject(ObjectGuid::Empty, true, gameobject);
+                break;
+            case GO_ARCHAEDAS_TEMPLE_DOOR:
+                archaedasTempleDoorGUID = gameobject->GetGUID();
+                break;
             }
         }
 
@@ -79,15 +79,15 @@ public:
         {
             switch (type)
             {
-                case DATA_IRONAYA_DOORS:
-                case DATA_STONE_KEEPERS:
-                    _encounters[type] = data;
-                    break;
-                case DATA_ARCHAEDAS:
-                    _encounters[type] = data;
-                    HandleGameObject(ancientVaultDoorGUID, data == DONE, nullptr);
-                    HandleGameObject(archaedasTempleDoorGUID, data != IN_PROGRESS, nullptr);
-                    break;
+            case DATA_IRONAYA_DOORS:
+            case DATA_STONE_KEEPERS:
+                _encounters[type] = data;
+                break;
+            case DATA_ARCHAEDAS:
+                _encounters[type] = data;
+                HandleGameObject(ancientVaultDoorGUID, data == DONE, nullptr);
+                HandleGameObject(archaedasTempleDoorGUID, data != IN_PROGRESS, nullptr);
+                break;
             }
 
             if (data == DONE)
@@ -121,10 +121,10 @@ public:
         {
             switch (creature->GetEntry())
             {
-                case NPC_STONE_KEEPER:
-                    if (_encounters[DATA_STONE_KEEPERS] != DONE && !creature->IsAlive())
-                        creature->Respawn();
-                    break;
+            case NPC_STONE_KEEPER:
+                if (_encounters[DATA_STONE_KEEPERS] != DONE && !creature->IsAlive())
+                    creature->Respawn();
+                break;
             }
         }
 
@@ -159,14 +159,14 @@ public:
                 std::list<Unit*> targets;
                 Acore::AnyUnitInObjectRangeCheck checker(keeper, 100.0f);
                 Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(keeper, targets, checker);
-                Cell::VisitAllObjects(keeper, searcher, 100.0f); 
+                Cell::VisitAllObjects(keeper, searcher, 100.0f);
 
                 Unit* nearestTarget = nullptr;
                 float nearestDist = std::numeric_limits<float>::max();
 
                 for (Unit* target : targets)
                 {
-                    if (target->GetTypeId() == TYPEID_PLAYER || (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBot())) 
+                    if (target->GetTypeId() == TYPEID_PLAYER || (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBot()))
                     {
                         float dist = keeper->GetDistance(target);
                         if (dist < nearestDist)
@@ -272,14 +272,14 @@ public:
                 std::list<Unit*> targets;
                 Acore::AnyUnitInObjectRangeCheck checker(archaedas, 100.0f);
                 Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(archaedas, targets, checker);
-                Cell::VisitAllObjects(archaedas, searcher, 100.0f); 
+                Cell::VisitAllObjects(archaedas, searcher, 100.0f);
 
                 Unit* nearestTarget = nullptr;
                 float nearestDist = std::numeric_limits<float>::max();
 
                 for (Unit* target : targets)
                 {
-                    if (target->GetTypeId() == TYPEID_PLAYER || (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBot())) 
+                    if (target->GetTypeId() == TYPEID_PLAYER || (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->IsNPCBot()))
                     {
                         float dist = archaedas->GetDistance(target);
                         if (dist < nearestDist)

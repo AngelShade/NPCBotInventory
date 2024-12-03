@@ -23,7 +23,6 @@
 #include "Common.h"
 #include "CreatureData.h"
 #include "DatabaseEnv.h"
-#include "ItemTemplate.h"
 #include "LootMgr.h"
 #include "Unit.h"
 #include "World.h"
@@ -476,6 +475,7 @@ public:
     void ApplyBotCritMultiplierAll(Unit const* victim, float& crit_chance, SpellInfo const* spellInfo, SpellSchoolMask schoolMask, WeaponAttackType attackType) const;
     void ApplyCreatureSpellCostMods(SpellInfo const* spellInfo, int32& cost) const;
     void ApplyCreatureSpellCastTimeMods(SpellInfo const* spellInfo, int32& casttime) const;
+    void ApplyCreatureSpellNotLoseCastTimeMods(SpellInfo const* spellInfo, int32& delayReduce) const;
     void ApplyCreatureSpellRadiusMods(SpellInfo const* spellInfo, float& radius) const;
     void ApplyCreatureSpellRangeMods(SpellInfo const* spellInfo, float& maxrange) const;
     void ApplyCreatureSpellMaxTargetsMods(SpellInfo const* spellInfo, uint32& targets) const;

@@ -755,7 +755,7 @@ public:
             if (tanks.empty())
                 return;
 
-            Unit* target = tanks.size() == 1 ? *tanks.begin() : Acore::Containers::SelectRandomContainerElement(tanks);
+            Unit* target = tanks.size() == 1 ? *tanks.begin() : Bcore::Containers::SelectRandomContainerElement(tanks);
             if (doCast(target, GetSpell(MISDIRECTION_1)))
             {
                 if (!IsWanderer()) 
@@ -1190,7 +1190,7 @@ public:
             if (targets.empty())
                 return;
 
-            Unit* target = targets.size() == 1u ? *targets.begin() : Acore::Containers::SelectRandomContainerElement(targets);
+            Unit* target = targets.size() == 1u ? *targets.begin() : Bcore::Containers::SelectRandomContainerElement(targets);
             if (doCast(target, GetSpell(FLARE_1)))
                 return;
         }
@@ -1429,6 +1429,25 @@ public:
 
             //cost can be < 0
             cost = int32(fcost * (1.0f - pctbonus)) - flatbonus;
+        }
+
+        void ApplyClassSpellNotLoseCastTimeMods(SpellInfo const* spellInfo, int32& delayReduce) const override
+        {
+            uint32 baseId = spellInfo->GetFirstRankSpell()->Id;
+            //SpellSchoolMask schools = spellInfo->GetSchoolMask();
+            uint8 lvl = me->GetLevel();
+            int32 reduceBonus = 0;
+
+            if (lvl >= 10 && baseId == STEADY_SHOT_1)
+                reduceBonus += 70;
+
+            if (lvl >= 15 && baseId == SCARE_BEAST_1)
+                reduceBonus += 75;
+
+            if (GetSpec() == BOT_SPEC_HUNTER_MARKSMANSHIP && lvl >= 40 && baseId == VOLLEY_1)
+                reduceBonus += 100;
+
+            delayReduce += reduceBonus;
         }
 
         void ApplyClassSpellCooldownMods(SpellInfo const* spellInfo, uint32& cooldown) const override
@@ -2031,7 +2050,7 @@ public:
 
         void SummonedCreatureDies(Creature* /*summon*/, Unit* /*killer*/) override
         {
-            //TC_LOG_ERROR("entities.unit", "SummonedCreatureDies: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
+            //BOT_LOG_ERROR("entities.unit", "SummonedCreatureDies: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
             //if (summon == botPet)
             //    botPet = nullptr;
         }
@@ -2039,7 +2058,7 @@ public:
         void SummonedCreatureDespawn(Creature* summon) override
         {
             //all hunter bot pets despawn at death or manually (gossip, teleport, etc.)
-            //TC_LOG_ERROR("entities.unit", "SummonedCreatureDespawn: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
+            //BOT_LOG_ERROR("entities.unit", "SummonedCreatureDespawn: %s's %s", me->GetName().c_str(), summon->GetName().c_str());
             if (summon == botPet)
             {
                 petSummonTimer = 10000;

@@ -1,6 +1,7 @@
 #ifndef _BOTCOMMON_H
 #define _BOTCOMMON_H
 
+#include "botdefine.h"
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
 #include "SpellAuraDefines.h"
@@ -373,9 +374,10 @@ enum BotPetTypes
 
     //DK
     BOT_PET_GHOUL                       = 70538,
-    BOT_PET_GARGOYLE                    = 70539,//NYI
-    BOT_PET_DANCING_RUNE_WEAPON         = 70540,//NYI
-    BOT_PET_AOD_GHOUL                   = 70541,//NYI
+
+    BOT_PET_REUSE_1                     = 70539,//REUSE, was BOT_PET_GARGOYLE
+    BOT_PET_REUSE_2                     = 70540,//REUSE, was BOT_PET_DANCING_RUNE_WEAPON
+    BOT_PET_REUSE_3                     = 70541,//REUSE, was BOT_PET_AOD_GHOUL
 
     //Priest
     BOT_PET_SHADOWFIEND                 = 70542,
@@ -532,8 +534,8 @@ enum BotAIResetType
 enum BotMovementType
 {
     BOT_MOVE_POINT                      = 1,
-    //BOT_MOVE_FOLLOW
-    BOT_MOVE_CHASE
+    BOT_MOVE_CHASE,
+    BOT_MOVE_JUMP
 };
 
 enum BotCommandStates : uint32

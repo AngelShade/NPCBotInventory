@@ -25,13 +25,7 @@
 #include "ScriptMgr.h"
 #include "World.h"
 #include "WorldSession.h"
-//#include "WorldStatePackets.h"
-
-// Ornfelt: npcbot
-#include "bot_ai.h"
-#include "botdatamgr.h"
-#include "botmgr.h"
-//end npcbot
+ //#include "WorldStatePackets.h"
 
 void ArenaScore::AppendToPacket(WorldPacket& data)
 {
@@ -68,14 +62,14 @@ void ArenaTeamScore::BuildTeamInfoBlock(WorldPacket& data)
 
 Arena::Arena()
 {
-    StartDelayTimes[BG_STARTING_EVENT_FIRST]  = BG_START_DELAY_1M;
+    StartDelayTimes[BG_STARTING_EVENT_FIRST] = BG_START_DELAY_1M;
     StartDelayTimes[BG_STARTING_EVENT_SECOND] = BG_START_DELAY_30S;
-    StartDelayTimes[BG_STARTING_EVENT_THIRD]  = BG_START_DELAY_15S;
+    StartDelayTimes[BG_STARTING_EVENT_THIRD] = BG_START_DELAY_15S;
     StartDelayTimes[BG_STARTING_EVENT_FOURTH] = BG_START_DELAY_NONE;
 
-    StartMessageIds[BG_STARTING_EVENT_FIRST]  = ARENA_TEXT_START_ONE_MINUTE;
+    StartMessageIds[BG_STARTING_EVENT_FIRST] = ARENA_TEXT_START_ONE_MINUTE;
     StartMessageIds[BG_STARTING_EVENT_SECOND] = ARENA_TEXT_START_THIRTY_SECONDS;
-    StartMessageIds[BG_STARTING_EVENT_THIRD]  = ARENA_TEXT_START_FIFTEEN_SECONDS;
+    StartMessageIds[BG_STARTING_EVENT_THIRD] = ARENA_TEXT_START_FIFTEEN_SECONDS;
     StartMessageIds[BG_STARTING_EVENT_FOURTH] = ARENA_TEXT_START_BATTLE_HAS_BEGUN;
 }
 
@@ -143,6 +137,24 @@ void Arena::AddPlayer(Player* player)
     }
 }
 
+//npcbot
+void Arena::AddBot(Creature* bot)
+{
+    ASSERT(bot->IsNPCBot() && !bot->IsFreeBot());
+
+    bool const isInBattleground = IsPlayerInBattleground(bot->GetGUID());
+    Battleground::AddBot(bot);
+    TeamId botteamid = bot->GetBotOwner()->GetBgTeamId();
+
+    if (!isInBattleground)
+        BotScores[bot->GetEntry()] = new ArenaScore(bot->GetGUID(), botteamid);
+
+    //No flags - handled by AI
+
+    UpdateArenaWorldState();
+}
+//end npcbot
+
 void Arena::RemovePlayer(Player* /*player*/)
 {
     if (GetStatus() == STATUS_WAIT_LEAVE)
@@ -151,6 +163,17 @@ void Arena::RemovePlayer(Player* /*player*/)
     UpdateArenaWorldState();
     CheckWinConditions();
 }
+
+//npcbot
+void Arena::RemoveBot(ObjectGuid /*guid*/)
+{
+    if (GetStatus() == STATUS_WAIT_LEAVE)
+        return;
+
+    UpdateArenaWorldState();
+    CheckWinConditions();
+}
+//end npcbot
 
 void Arena::FillInitialWorldStates(WorldPacket& data)
 {
@@ -175,38 +198,11 @@ void Arena::HandleKillPlayer(Player* player, Player* killer)
     CheckWinConditions();
 }
 
-// Ornfelt: npcbot
-void Arena::AddBot(Creature* bot)
-{
-    ObjectGuid guid = bot->GetGUID();
-    TeamId teamId = BotDataMgr::GetTeamIdForFaction(bot->GetFaction());
-
-    Battleground::AddBot(bot);
-    PlayerScores.emplace(bot->GetGUID().GetCounter(), new ArenaScore(bot->GetGUID(), teamId));
-
-    if (teamId == TEAM_ALLIANCE) // gold
-    {
-        if (teamId == TEAM_HORDE)
-            bot->CastSpell(bot, SPELL_HORDE_GOLD_FLAG, true);
-        else
-            bot->CastSpell(bot, SPELL_ALLIANCE_GOLD_FLAG, true);
-    }
-    else // green
-    {
-        if (teamId == TEAM_HORDE)
-            bot->CastSpell(bot, SPELL_HORDE_GREEN_FLAG, true);
-        else
-            bot->CastSpell(bot, SPELL_ALLIANCE_GREEN_FLAG, true);
-    }
-
-    UpdateArenaWorldState();
-}
-
+//npcbot
 void Arena::HandleBotKillPlayer(Creature* killer, Player* victim)
 {
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
-
     Battleground::HandleBotKillPlayer(killer, victim);
     UpdateArenaWorldState();
     CheckWinConditions();
@@ -215,7 +211,6 @@ void Arena::HandleBotKillBot(Creature* killer, Creature* victim)
 {
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
-
     Battleground::HandleBotKillBot(killer, victim);
     UpdateArenaWorldState();
     CheckWinConditions();
@@ -224,7 +219,6 @@ void Arena::HandlePlayerKillBot(Creature* victim, Player* killer)
 {
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
-
     Battleground::HandlePlayerKillBot(victim, killer);
     UpdateArenaWorldState();
     CheckWinConditions();
@@ -251,6 +245,35 @@ void Arena::RemovePlayerAtLeave(Player* player)
     // remove player
     Battleground::RemovePlayerAtLeave(player);
 }
+
+//npcbot
+void Arena::RemoveBotAtLeave(ObjectGuid guid)
+{
+    //if (isRated() && GetStatus() == STATUS_IN_PROGRESS)
+    //{
+    //    BattlegroundBotMap::const_iterator itr = m_Bots.find(guid);
+    //    if (itr != m_Bots.end()) // check if the player was a participant of the match, or only entered through gm command (appear)
+    //    {
+    //        // if the player was a match participant, calculate rating
+    //        uint32 team = itr->second.Team;
+
+    //        ArenaTeam* winnerArenaTeam = sArenaTeamMgr->GetArenaTeamById(GetArenaTeamIdForTeam(GetOtherTeam(team)));
+    //        ArenaTeam* loserArenaTeam = sArenaTeamMgr->GetArenaTeamById(GetArenaTeamIdForTeam(team));
+
+    //        // left a rated match while the encounter was in progress, consider as loser
+    //        if (winnerArenaTeam && loserArenaTeam && winnerArenaTeam != loserArenaTeam)
+    //        {
+    //            if (Player* player = _GetPlayer(itr->first, itr->second.OfflineRemoveTime != 0, "Arena::RemovePlayerAtLeave"))
+    //                loserArenaTeam->MemberLost(player, GetArenaMatchmakerRating(GetOtherTeam(team)));
+    //            else
+    //                loserArenaTeam->OfflineMemberLost(guid, GetArenaMatchmakerRating(GetOtherTeam(team)));
+    //        }
+    //    }
+    //}
+
+    Battleground::RemoveBotAtLeave(guid);
+}
+//end npcbot
 
 void Arena::CheckWinConditions()
 {
@@ -280,59 +303,59 @@ void Arena::EndBattleground(TeamId winnerTeamId)
         int32  winnerMatchmakerChange = 0;
 
         ArenaTeam* winnerArenaTeam = sArenaTeamMgr->GetArenaTeamById(GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_HORDE : winnerTeamId));
-        ArenaTeam* loserArenaTeam  = sArenaTeamMgr->GetArenaTeamById(GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_ALLIANCE : GetOtherTeamId(winnerTeamId)));
+        ArenaTeam* loserArenaTeam = sArenaTeamMgr->GetArenaTeamById(GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_ALLIANCE : GetOtherTeamId(winnerTeamId)));
 
         auto SaveArenaLogs = [&]()
-        {
-            // pussywizard: arena logs in database
-            uint32 fightId = sArenaTeamMgr->GetNextArenaLogId();
-            uint32 currOnline = sWorld->GetActiveSessionCount();
-
-            CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-            CharacterDatabasePreparedStatement* stmt2 = CharacterDatabase.GetPreparedStatement(CHAR_INS_ARENA_LOG_FIGHT);
-            stmt2->SetData(0, fightId);
-            stmt2->SetData(1, GetArenaType());
-            stmt2->SetData(2, ((GetStartTime() <= startDelay ? 0 : GetStartTime() - startDelay) / 1000));
-            stmt2->SetData(3, winnerArenaTeam->GetId());
-            stmt2->SetData(4, loserArenaTeam->GetId());
-            stmt2->SetData(5, (uint16)winnerTeamRating);
-            stmt2->SetData(6, (uint16)winnerMatchmakerRating);
-            stmt2->SetData(7, (int16)winnerChange);
-            stmt2->SetData(8, (uint16)loserTeamRating);
-            stmt2->SetData(9, (uint16)loserMatchmakerRating);
-            stmt2->SetData(10, (int16)loserChange);
-            stmt2->SetData(11, currOnline);
-            trans->Append(stmt2);
-
-            uint8 memberId = 0;
-            for (auto const& [playerGuid, arenaLogEntryData] : ArenaLogEntries)
             {
-                auto const& score = PlayerScores.find(playerGuid.GetCounter());
-                stmt2 = CharacterDatabase.GetPreparedStatement(CHAR_INS_ARENA_LOG_MEMBERSTATS);
-                stmt2->SetData(0, fightId);
-                stmt2->SetData(1, ++memberId);
-                stmt2->SetData(2, arenaLogEntryData.Name);
-                stmt2->SetData(3, arenaLogEntryData.Guid);
-                stmt2->SetData(4, arenaLogEntryData.ArenaTeamId);
-                stmt2->SetData(5, arenaLogEntryData.Acc);
-                stmt2->SetData(6, arenaLogEntryData.IP);
-                if (score != PlayerScores.end())
-                {
-                    stmt2->SetData(7, score->second->GetDamageDone());
-                    stmt2->SetData(8, score->second->GetHealingDone());
-                    stmt2->SetData(9, score->second->GetKillingBlows());
-                }
-                else
-                {
-                    stmt2->SetData(7, 0);
-                    stmt2->SetData(8, 0);
-                    stmt2->SetData(9, 0);
-                }
-                trans->Append(stmt2);
-            }
+                // pussywizard: arena logs in database
+                uint32 fightId = sArenaTeamMgr->GetNextArenaLogId();
+                uint32 currOnline = sWorld->GetActiveSessionCount();
 
-            CharacterDatabase.CommitTransaction(trans);
-        };
+                CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+                CharacterDatabasePreparedStatement* stmt2 = CharacterDatabase.GetPreparedStatement(CHAR_INS_ARENA_LOG_FIGHT);
+                stmt2->SetData(0, fightId);
+                stmt2->SetData(1, GetArenaType());
+                stmt2->SetData(2, ((GetStartTime() <= startDelay ? 0 : GetStartTime() - startDelay) / 1000));
+                stmt2->SetData(3, winnerArenaTeam->GetId());
+                stmt2->SetData(4, loserArenaTeam->GetId());
+                stmt2->SetData(5, (uint16)winnerTeamRating);
+                stmt2->SetData(6, (uint16)winnerMatchmakerRating);
+                stmt2->SetData(7, (int16)winnerChange);
+                stmt2->SetData(8, (uint16)loserTeamRating);
+                stmt2->SetData(9, (uint16)loserMatchmakerRating);
+                stmt2->SetData(10, (int16)loserChange);
+                stmt2->SetData(11, currOnline);
+                trans->Append(stmt2);
+
+                uint8 memberId = 0;
+                for (auto const& [playerGuid, arenaLogEntryData] : ArenaLogEntries)
+                {
+                    auto const& score = PlayerScores.find(playerGuid.GetCounter());
+                    stmt2 = CharacterDatabase.GetPreparedStatement(CHAR_INS_ARENA_LOG_MEMBERSTATS);
+                    stmt2->SetData(0, fightId);
+                    stmt2->SetData(1, ++memberId);
+                    stmt2->SetData(2, arenaLogEntryData.Name);
+                    stmt2->SetData(3, arenaLogEntryData.Guid);
+                    stmt2->SetData(4, arenaLogEntryData.ArenaTeamId);
+                    stmt2->SetData(5, arenaLogEntryData.Acc);
+                    stmt2->SetData(6, arenaLogEntryData.IP);
+                    if (score != PlayerScores.end())
+                    {
+                        stmt2->SetData(7, score->second->GetDamageDone());
+                        stmt2->SetData(8, score->second->GetHealingDone());
+                        stmt2->SetData(9, score->second->GetKillingBlows());
+                    }
+                    else
+                    {
+                        stmt2->SetData(7, 0);
+                        stmt2->SetData(8, 0);
+                        stmt2->SetData(9, 0);
+                    }
+                    trans->Append(stmt2);
+                }
+
+                CharacterDatabase.CommitTransaction(trans);
+            };
 
         if (winnerArenaTeam && loserArenaTeam && winnerArenaTeam != loserArenaTeam)
         {

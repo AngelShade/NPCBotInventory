@@ -34,7 +34,6 @@
 #include "LootMgr.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
-#include "OutdoorPvPMgr.h"
 #include "Pet.h"
 #include "Player.h"
 #include "PoolMgr.h"
@@ -1455,6 +1454,11 @@ void Creature::SetLootRecipient(Unit* unit, bool withGroup)
     }
     else
         m_lootRecipientGroup = 0;
+
+    //npcbot: prevent visual tap on owned bots
+    if (IsNPCBotOrPet() && !IsFreeBot())
+        return;
+    //end npcbot
 
     SetDynamicFlag(UNIT_DYNFLAG_TAPPED);
 }
@@ -4306,6 +4310,11 @@ void Creature::ApplyCreatureSpellCastTimeMods(SpellInfo const* spellInfo, int32&
 {
     if (bot_AI)
         bot_AI->ApplyBotSpellCastTimeMods(spellInfo, casttime);
+}
+void Creature::ApplyCreatureSpellNotLoseCastTimeMods(SpellInfo const* spellInfo, int32& delayReduce) const
+{
+    if (bot_AI)
+        bot_AI->ApplyBotSpellNotLoseCastTimeMods(spellInfo, delayReduce);
 }
 void Creature::ApplyCreatureSpellRadiusMods(SpellInfo const* spellInfo, float& radius) const
 {
