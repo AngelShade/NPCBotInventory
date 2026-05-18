@@ -4172,6 +4172,13 @@ public:
             return false;
         }
 
+        if (!bot->GetBotAI()->_canEquip(item->GetTemplate(), slot, false, item, false))
+        {
+            handler->SendSysMessage("Your bot cannot equip this item in this slot (incorrect armor type, class, or level restrictions).");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
         bot->GetBotAI()->_equip(slot, item, player->GetGUID(), false, false);
         return true;
     }
