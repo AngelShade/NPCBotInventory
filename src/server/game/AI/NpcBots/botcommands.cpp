@@ -4172,14 +4172,20 @@ public:
             return false;
         }
 
-        if (!bot->GetBotAI()->_canEquip(item->GetTemplate(), slot, false, item, false))
+        if (!bot->GetBotAI()->_canEquip(item->GetTemplate(), slot, true, item, false))
         {
             handler->SendSysMessage("Your bot cannot equip this item in this slot (incorrect armor type, class, or level restrictions).");
             handler->SetSentErrorMessage(true);
             return false;
         }
 
-        bot->GetBotAI()->_equip(slot, item, player->GetGUID(), false, false);
+        BotEquipResult result = bot->GetBotAI()->_equip(slot, item, player->GetGUID(), false, false);
+        if (result != BotEquipResult::BOT_EQUIP_RESULT_OK)
+        {
+            handler->PSendSysMessage("Equip failed with result code: {}", uint32(result));
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
         return true;
     }
 
