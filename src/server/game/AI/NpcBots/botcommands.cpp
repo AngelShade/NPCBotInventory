@@ -671,6 +671,8 @@ public:
             //{ "debug",      npcbotDebugCommandTable                                                                                 },
             //{ "toggle",     npcbotToggleCommandTable                                                                                },
             { "set",        npcbotSetCommandTable                                                                                   },
+            { "equip",      HandleNpcBotEquipCommand,               rbac::RBAC_PERM_COMMAND_NPCBOT_COMMAND_MISC,       Console::Yes },
+            { "updatevisual", HandleNpcBotUpdateVisualCommand,      rbac::RBAC_PERM_COMMAND_NPCBOT_COMMAND_MISC,       Console::Yes },
             { "add",        HandleNpcBotAddCommand,                 rbac::RBAC_PERM_COMMAND_NPCBOT_ADD,                Console::No  },
             { "remove",     HandleNpcBotRemoveCommand,              rbac::RBAC_PERM_COMMAND_NPCBOT_REMOVE,             Console::No  },
             { "free",       HandleNpcBotFreeCommand,                rbac::RBAC_PERM_COMMAND_NPCBOT_REMOVE,             Console::No  },
@@ -2107,7 +2109,7 @@ public:
             return true;
         }
 
-        if (owner->GetBotMgr()->IsPartyInCombat())
+        if (owner->GetBotMgr()->IsPartyInCombat(false))
         {
             handler->SendSysMessage("Can't do that while in combat!");
             return true;
@@ -2602,15 +2604,18 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-        if (owner->GetBotMgr()->IsPartyInCombat())
+        if (owner->GetBotMgr()->IsPartyInCombat(false))
         {
             handler->SendNotification(LANG_YOU_IN_COMBAT);
             handler->SetSentErrorMessage(true);
             return false;
         }
 
-        owner->GetBotMgr()->SetBotsHidden(true);
-        handler->SendSysMessage("Bots hidden");
+        if (!owner->GetBotMgr()->GetBotsHidden())
+        {
+            owner->GetBotMgr()->SetBotsHidden(true);
+            handler->SendSysMessage("Bots hidden");
+        }
         return true;
     }
 
@@ -2631,15 +2636,18 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-        if (owner->GetBotMgr()->IsPartyInCombat() && (owner->IsPvP() || owner->IsFFAPvP()))
+        if (owner->GetBotMgr()->IsPartyInCombat(true))
         {
             handler->SendNotification("You can't do that while in PvP combat");
             handler->SetSentErrorMessage(true);
             return false;
         }
 
-        owner->GetBotMgr()->SetBotsHidden(false);
-        handler->SendSysMessage("Bots unhidden");
+        if (owner->GetBotMgr()->GetBotsHidden())
+        {
+            owner->GetBotMgr()->SetBotsHidden(false);
+            handler->SendSysMessage("Bots unhidden");
+        }
         return true;
     }
 
@@ -2691,9 +2699,9 @@ public:
         Player* owner = !bot->IsFreeBot() ? bot->GetBotOwner() : nullptr;
         Player* tickler = handler->GetPlayer();
 
-        if (tickler != owner && !tickler->IsGameMaster())
+        if (!tickler->IsGameMaster())
         {
-            handler->SendSysMessage("Must be in GM mode to fix other player's bot!");
+            handler->SendSysMessage("Must be in GM mode to use this command!");
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -3025,12 +3033,12 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-        if (owner->GetBotMgr()->IsPartyInCombat())
+        /*if (owner->GetBotMgr()->IsPartyInCombat(false))
         {
             handler->SendNotification(LANG_YOU_IN_COMBAT);
             handler->SetSentErrorMessage(true);
             return false;
-        }
+        }*/
 
         if (guid == owner->GetGUID())
         {
@@ -3095,6 +3103,23 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
+//<<<<<<< HEAD Deal with later.
+
+        /*if (owner->GetBotMgr()->IsPartyInCombat(true))
+=======
+        if (owner->GetBotMgr()->GetBotsHidden())
+        {
+            handler->SendNotification("You can't do that while bots are hidden");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+        if (owner->GetBotMgr()->IsPartyInCombat(true))
+>>>>>>> 538188db940c2ae274f6671d0ea5a2c1b79f2953
+        {
+            handler->SendNotification("You can't do that while in PvP combat");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }*/
 
         owner->GetBotMgr()->RecallAllBots(true);
         return true;
@@ -3167,7 +3192,7 @@ public:
         else if ((*factionStr)[0] == 'h')
             factionId = 1801; //Horde
         else if ((*factionStr)[0] == 'm')
-            factionId = 14; //Monsters
+            factionId = FACTION_TEMPLATE_NEUTRAL_HOSTILE; //Monsters
         else if ((*factionStr)[0] == 'f')
             factionId = 35; //Friendly to all
 
@@ -3353,8 +3378,7 @@ public:
 
             if (teamid)
             {
-                ChrRacesEntry const* rentry = sChrRacesStore.LookupEntry(race);
-                uint32 faction = rentry ? rentry->FactionID : 14;
+                uint32 faction = BotDataMgr::GetDefaultFactionForBotRaceClass(_botExtras->bclass, race);
                 TeamId team = BotDataMgr::GetTeamIdForFaction(faction);
 
                 if (*teamid != uint8(team))
@@ -3434,7 +3458,7 @@ public:
                 handler->PSendSysMessage("Cannot delete bot {} from console: has gear but no player to give it back to! Can only delete this bot in-game.", bot->GetName());
                 return false;
             }
-            if (!bot->GetBotAI()->UnEquipAll(receiver))
+            if (bot->GetBotAI()->UnEquipAll(receiver, false) != BotEquipResult::BOT_EQUIP_RESULT_OK)
             {
                 handler->PSendSysMessage("{} is unable to unequip some gear. Please remove equips manually first!", bot->GetName());
                 return false;
@@ -4110,6 +4134,71 @@ public:
         Spell* spell = new Spell(player, spellInfo, TRIGGERED_NONE);
         spell->m_cast_count = 1;
         spell->prepare(&targets);
+
+        return true;
+    }
+
+    static bool HandleNpcBotEquipCommand(ChatHandler* handler, std::string playerName, uint32 botEntry, uint8 slot, uint32 itemEntry)
+    {
+        Player* player = ObjectAccessor::FindPlayerByName(playerName);
+        if (!player) return false;
+
+        Creature* bot = nullptr;
+        for (auto const& pair : *player->GetBotMgr()->GetBotMap())
+        {
+            if (pair.second->GetEntry() == botEntry)
+            {
+                bot = pair.second;
+                break;
+            }
+        }
+
+        if (!bot) return false;
+
+        if (slot >= BOT_INVENTORY_SIZE)
+            return false;
+
+        if (itemEntry == 0) // unequip
+        {
+            bot->GetBotAI()->_unequip(slot, player->GetGUID(), false, false);
+            return true;
+        }
+
+        Item* item = player->GetItemByEntry(itemEntry);
+        if (!item)
+        {
+            handler->PSendSysMessage("Item with entry {} not found in player bags.", itemEntry);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        bot->GetBotAI()->_equip(slot, item, player->GetGUID(), false, false);
+        return true;
+    }
+
+    static bool HandleNpcBotUpdateVisualCommand(ChatHandler* handler, std::string playerName, uint32 botEntry)
+    {
+        Player* player = ObjectAccessor::FindPlayerByName(playerName);
+        if (!player) return false;
+
+        Creature* bot = nullptr;
+        for (auto const& pair : *player->GetBotMgr()->GetBotMap())
+        {
+            if (pair.second->GetEntry() == botEntry)
+            {
+                bot = pair.second;
+                break;
+            }
+        }
+
+        if (!bot) return false;
+
+        if (Aura* trans = bot->AddAura(24753, bot)) // MODEL_TRANSITION
+        {
+            bot->SetUInt32Value(UNIT_VIRTUAL_ITEM_SLOT_ID + uint32(BOT_SLOT_OFFHAND), 0); // debug: remove offhand visuals temporarily
+            trans->SetDuration(500);
+            trans->SetMaxDuration(500);
+        }
 
         return true;
     }

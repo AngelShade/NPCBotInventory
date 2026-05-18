@@ -38,6 +38,7 @@
 #include "Vehicle.h"
 #include "Weather.h"
 #include "WeatherMgr.h"
+#include "WorldState.h"
 #include "WorldStatePackets.h"
 
 /// @todo: this import is not necessary for compilation and marked as unused by the IDE
@@ -82,6 +83,7 @@ void Player::Update(uint32 p_time)
 
     // used to implement delayed far teleports
     SetMustDelayTeleport(true);
+    ProcessSpellQueue();
     Unit::Update(p_time);
     SetMustDelayTeleport(false);
 
@@ -359,7 +361,7 @@ void Player::Update(uint32 p_time)
 
     // not auto-free ghost from body in instances
     if (m_deathTimer > 0 && !GetMap()->Instanceable() &&
-        !HasAuraType(SPELL_AURA_PREVENT_RESURRECTION))
+        !HasPreventResurectionAura())
     {
         if (p_time >= m_deathTimer)
         {
@@ -725,65 +727,84 @@ inline int SkillGainChance(uint32 SkillValue, uint32 GrayLevel,
 }
 
 bool Player::UpdateGatherSkill(uint32 SkillId, uint32 SkillValue,
-                               uint32 RedLevel, uint32 Multiplicator)
+    uint32 RedLevel, uint32 Multiplicator)
 {
     LOG_DEBUG("entities.player.skills",
-              "UpdateGatherSkill(SkillId {} SkillLevel {} RedLevel {})",
-              SkillId, SkillValue, RedLevel);
+        "UpdateGatherSkill(SkillId {} SkillLevel {} RedLevel {})",
+        SkillId, SkillValue, RedLevel);
 
     uint32 gathering_skill_gain =
         sWorld->getIntConfig(CONFIG_SKILL_GAIN_GATHERING);
     sScriptMgr->OnUpdateGatheringSkill(this, SkillId, SkillValue, RedLevel + 100, RedLevel + 50, RedLevel + 25, gathering_skill_gain);
 
-    // For skinning and Mining chance decrease with level. 1-74 - no decrease,
-    // 75-149 - 2 times, 225-299 - 8 times
+    // XP multiplier based on skill level ranges
+    float xpMultiplier = 1.0f; // Default multiplier
+    if (SkillValue <= 100)
+        xpMultiplier = 0.5f; // 50% XP for skill levels 1-100
+    else if (SkillValue <= 200)
+        xpMultiplier = 0.75f; // 75% XP for skill levels 101-200
+
+    // Gathering experience calculation
+    uint32 xpToNextLevel = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
+    float xpBase = xpToNextLevel * 0.0025f; // Base XP (e.g., 0.25% of xpToNextLevel)
+    uint32 xpAmount = (uint32)ceil(xpBase * xpMultiplier);
+
+    // For skinning and mining, chance decreases with level
+    bool skillIncreased = false;
     switch (SkillId)
     {
     case SKILL_HERBALISM:
     case SKILL_LOCKPICKING:
     case SKILL_JEWELCRAFTING:
     case SKILL_INSCRIPTION:
-        return UpdateSkillPro(SkillId,
-                              SkillGainChance(SkillValue, RedLevel + 100,
-                                              RedLevel + 50, RedLevel + 25) *
-                                  Multiplicator,
-                              gathering_skill_gain);
+        skillIncreased = UpdateSkillPro(SkillId,
+            SkillGainChance(SkillValue, RedLevel + 100,
+                RedLevel + 50, RedLevel + 25) *
+            Multiplicator,
+            gathering_skill_gain);
+        break;
     case SKILL_SKINNING:
         if (sWorld->getIntConfig(CONFIG_SKILL_CHANCE_SKINNING_STEPS) == 0)
-            return UpdateSkillPro(SkillId,
-                                  SkillGainChance(SkillValue, RedLevel + 100,
-                                                  RedLevel + 50,
-                                                  RedLevel + 25) *
-                                      Multiplicator,
-                                  gathering_skill_gain);
+            skillIncreased = UpdateSkillPro(SkillId,
+                SkillGainChance(SkillValue, RedLevel + 100,
+                    RedLevel + 50, RedLevel + 25) *
+                Multiplicator,
+                gathering_skill_gain);
         else
-            return UpdateSkillPro(
+            skillIncreased = UpdateSkillPro(
                 SkillId,
                 (SkillGainChance(SkillValue, RedLevel + 100, RedLevel + 50,
-                                 RedLevel + 25) *
-                 Multiplicator) >>
-                    (SkillValue /
-                     sWorld->getIntConfig(CONFIG_SKILL_CHANCE_SKINNING_STEPS)),
+                    RedLevel + 25) *
+                    Multiplicator) >>
+                (SkillValue /
+                    sWorld->getIntConfig(CONFIG_SKILL_CHANCE_SKINNING_STEPS)),
                 gathering_skill_gain);
+        break;
     case SKILL_MINING:
         if (sWorld->getIntConfig(CONFIG_SKILL_CHANCE_MINING_STEPS) == 0)
-            return UpdateSkillPro(SkillId,
-                                  SkillGainChance(SkillValue, RedLevel + 100,
-                                                  RedLevel + 50,
-                                                  RedLevel + 25) *
-                                      Multiplicator,
-                                  gathering_skill_gain);
+            skillIncreased = UpdateSkillPro(SkillId,
+                SkillGainChance(SkillValue, RedLevel + 100,
+                    RedLevel + 50, RedLevel + 25) *
+                Multiplicator,
+                gathering_skill_gain);
         else
-            return UpdateSkillPro(
+            skillIncreased = UpdateSkillPro(
                 SkillId,
                 (SkillGainChance(SkillValue, RedLevel + 100, RedLevel + 50,
-                                 RedLevel + 25) *
-                 Multiplicator) >>
-                    (SkillValue /
-                     sWorld->getIntConfig(CONFIG_SKILL_CHANCE_MINING_STEPS)),
+                    RedLevel + 25) *
+                    Multiplicator) >>
+                (SkillValue /
+                    sWorld->getIntConfig(CONFIG_SKILL_CHANCE_MINING_STEPS)),
                 gathering_skill_gain);
+        break;
     }
-    return false;
+
+    if (skillIncreased && xpAmount > 0)
+    {
+        GiveXP(xpAmount, nullptr, 0, false);
+    }
+
+    return skillIncreased;
 }
 
 bool Player::UpdateCraftSkill(uint32 spellid)
@@ -797,31 +818,51 @@ bool Player::UpdateCraftSkill(uint32 spellid)
     {
         if (_spell_idx->second->SkillLine)
         {
-            uint32 SkillValue =
-                GetPureSkillValue(_spell_idx->second->SkillLine);
+            uint32 SkillValue = GetPureSkillValue(_spell_idx->second->SkillLine);
 
             // Alchemy Discoveries here
             SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellid);
             if (spellInfo && spellInfo->Mechanic == MECHANIC_DISCOVERY)
             {
-                if (uint32 discoveredSpell = GetSkillDiscoverySpell(
-                        _spell_idx->second->SkillLine, spellid, this))
+                if (uint32 discoveredSpell = GetSkillDiscoverySpell(_spell_idx->second->SkillLine, spellid, this))
                     learnSpell(discoveredSpell);
             }
 
-            uint32 craft_skill_gain =
-                sWorld->getIntConfig(CONFIG_SKILL_GAIN_CRAFTING);
+            uint32 craft_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_CRAFTING);
             sScriptMgr->OnUpdateCraftingSkill(this, _spell_idx->second, SkillValue, craft_skill_gain);
 
-            return UpdateSkillPro(
+            // UpdateSkillPro returns true if a skill point was gained
+            bool skillIncreased = UpdateSkillPro(
                 _spell_idx->second->SkillLine,
-                SkillGainChance(SkillValue,
-                                _spell_idx->second->TrivialSkillLineRankHigh,
-                                (_spell_idx->second->TrivialSkillLineRankHigh +
-                                 _spell_idx->second->TrivialSkillLineRankLow) /
-                                    2,
-                                _spell_idx->second->TrivialSkillLineRankLow),
-                craft_skill_gain);
+                SkillGainChance(
+                    SkillValue,
+                    _spell_idx->second->TrivialSkillLineRankHigh,
+                    (_spell_idx->second->TrivialSkillLineRankHigh + _spell_idx->second->TrivialSkillLineRankLow) / 2,
+                    _spell_idx->second->TrivialSkillLineRankLow),
+                craft_skill_gain
+            );
+
+            if (skillIncreased)
+            {
+                // Total XP required to reach next level from level start:
+                uint32 xpToNextLevel = GetUInt32Value(PLAYER_NEXT_LEVEL_XP);
+
+                // XP multiplier based on skill level ranges
+                float xpMultiplier = 1.0f; 
+                if (SkillValue <= 100)
+                    xpMultiplier = 0.5f; // 50% XP for skill levels 1-100
+                else if (SkillValue <= 200)
+                    xpMultiplier = 0.75f; // 75% XP for skill levels 101-200
+
+                // Base XP to award (0.3% of xpToNextLevel)
+                float xpBase = xpToNextLevel * 0.003f;
+                uint32 xpAmount = (uint32)ceil(xpBase * xpMultiplier);
+
+                if (xpAmount > 0)
+                    GiveXP(xpAmount, nullptr, 0, false);
+            }
+
+            return skillIncreased;
         }
     }
     return false;
@@ -1223,6 +1264,8 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
     {
         sOutdoorPvPMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
         sOutdoorPvPMgr->HandlePlayerEnterZone(this, newZone);
+        sWorldState->HandlePlayerLeaveZone(this, static_cast<WorldStateZoneId>(m_zoneUpdateId));
+        sWorldState->HandlePlayerEnterZone(this, static_cast<WorldStateZoneId>(newZone));
         sBattlefieldMgr->HandlePlayerLeaveZone(this, m_zoneUpdateId);
         sBattlefieldMgr->HandlePlayerEnterZone(this, newZone);
         SendInitWorldStates(newZone,
@@ -1725,7 +1768,7 @@ void Player::UpdateTriggerVisibility()
             // Update fields of triggers, transformed units or unselectable
             // units (values dependent on GM state)
             if (!creature || (!creature->IsTrigger() &&
-                              !creature->HasAuraType(SPELL_AURA_TRANSFORM) &&
+                              !creature->HasTransformAura() &&
                               !creature->HasUnitFlag(UNIT_FLAG_NOT_SELECTABLE)))
                 continue;
 
@@ -2264,4 +2307,90 @@ void Player::ProcessTerrainStatusUpdate()
     }
     else
         m_MirrorTimerFlags &= ~(UNDERWATER_INWATER | UNDERWATER_INLAVA | UNDERWATER_INSLIME | UNDERWATER_INDARKWATER);
+}
+
+uint32 Player::GetSpellQueueWindow() const
+{
+    return sWorld->getIntConfig(CONFIG_SPELL_QUEUE_WINDOW);
+}
+
+bool Player::CanExecutePendingSpellCastRequest(SpellInfo const* spellInfo)
+{
+    if (GetGlobalCooldownMgr().HasGlobalCooldown(spellInfo))
+        return false;
+
+    if (GetSpellCooldownDelay(spellInfo->Id) > GetSpellQueueWindow())
+        return false;
+
+    for (CurrentSpellTypes spellSlot : {CURRENT_MELEE_SPELL, CURRENT_GENERIC_SPELL})
+        if (Spell* spell = GetCurrentSpell(spellSlot))
+        {
+            bool autoshot = spell->m_spellInfo->IsAutoRepeatRangedSpell();
+            if (IsNonMeleeSpellCast(false, true, true, autoshot))
+                return false;
+        }
+    return true;
+}
+
+const PendingSpellCastRequest* Player::GetCastRequest(uint32 category) const
+{
+    for (const PendingSpellCastRequest& request : SpellQueue)
+        if (request.category == category)
+            return &request;
+    return nullptr;
+}
+
+bool Player::CanRequestSpellCast(SpellInfo const* spellInfo)
+{
+    if (!sWorld->getBoolConfig(CONFIG_SPELL_QUEUE_ENABLED))
+        return false;
+
+    // Check for existing cast request with the same category
+    if (GetCastRequest(spellInfo->GetCategory()))
+        return false;
+
+    if (GetGlobalCooldownMgr().GetGlobalCooldown(spellInfo) > GetSpellQueueWindow())
+        return false;
+
+    if (GetSpellCooldownDelay(spellInfo->Id) > GetSpellQueueWindow())
+        return false;
+
+    // If there is an existing cast that will last longer than the allowable
+    // spell queue window, then we can't request a new spell cast
+    for (CurrentSpellTypes spellSlot : { CURRENT_MELEE_SPELL, CURRENT_GENERIC_SPELL })
+        if (Spell* spell = GetCurrentSpell(spellSlot))
+            if (spell->GetCastTimeRemaining() > static_cast<int32>(GetSpellQueueWindow()))
+                return false;
+
+    return true;
+}
+
+void Player::ExecuteOrCancelSpellCastRequest(PendingSpellCastRequest* request, bool isCancel /* = false*/)
+{
+    if (isCancel)
+        request->cancelInProgress = true;
+
+    if (WorldSession* session = GetSession())
+    {
+        if (request->isItem)
+            session->HandleUseItemOpcode(request->requestPacket);
+        else
+            session->HandleCastSpellOpcode(request->requestPacket);
+    }
+}
+
+void Player::ProcessSpellQueue()
+{
+    while (!SpellQueue.empty())
+    {
+        PendingSpellCastRequest& request = SpellQueue.front(); // Peek at the first spell
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(request.spellId);
+        if (CanExecutePendingSpellCastRequest(spellInfo))
+        {
+            ExecuteOrCancelSpellCastRequest(&request);
+            SpellQueue.pop_front(); // Remove from the queue
+        }
+        else // If the first spell can't execute, stop processing
+            break;
+    }
 }

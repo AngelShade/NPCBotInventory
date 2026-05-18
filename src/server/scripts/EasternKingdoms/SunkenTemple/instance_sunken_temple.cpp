@@ -446,7 +446,7 @@ public:
                     break;
                 case EVENT_SPAWN_CREATURE:
                     SpawnCreatures();
-                    events.ScheduleEvent(EVENT_SPAWN_CREATURE, 33000);
+                    events.ScheduleEvent(EVENT_SPAWN_CREATURE, 25000);
                     break;
                 }
             }

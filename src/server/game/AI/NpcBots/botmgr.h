@@ -68,6 +68,7 @@ enum BotRemoveType
     BOT_REMOVE_DISMISS                  = 1,
     BOT_REMOVE_UNSUMMON                 = 2,
     BOT_REMOVE_UNBIND                   = 3,
+    BOT_REMOVE_UNAFFORD                 = 4,
     BOT_REMOVE_BY_DEFAULT               = BOT_REMOVE_LOGOUT
 };
 
@@ -151,6 +152,8 @@ class AC_GAME_API BotMgr
         static uint8 GetMaxClassBots();
         static uint8 GetMaxDarkRangerBots();
         static uint8 GetMaxAccountBots();
+        static uint32 GetGearBankCapacity();
+        static uint32 GetGearBankEquipmentSetsCount();
         static uint8 GetHealTargetIconFlags();
         static uint8 GetTankTargetIconFlags();
         static uint8 GetOffTankTargetIconFlags();
@@ -183,6 +186,9 @@ class AC_GAME_API BotMgr
         static float GetBotWandererXPGainMod();
         static PctBrackets GetBotWandererLevelBrackets();
         static uint32 GetBotWandererMaxItemLevel(uint8 level);
+        static uint32 GetBotWandererKillRewardMoney();
+        static uint32 GetBotWandererKillRewardItemMaxCount();
+        static uint32 GetBotWandererKillRewardItemMaxQuality();
         static float GetBotDamageModByClass(uint8 botclass);
         static float GetBotDamageModByLevel(uint8 botlevel);
         static float GetBotHealingModByLevel(uint8 botlevel);
@@ -244,6 +250,10 @@ class AC_GAME_API BotMgr
         static uint8 GetMaxNpcBots(uint8 level);
         static uint8 GetNpcBotXpReduction();
         static uint8 GetNpcBotXpReductionStartingNumber();
+        static bool GetNpcBotXpReductionBlizzlikeEnabled();
+        static bool GetNpcBotXpReductionBlizzlikeGroupOnly();
+        static bool GetNpcBotMoneyShareEnabled();
+        static bool GetNpcBotMoneyShareGroupOnly();
         static uint8 GetNpcBotMountLevel60();
         static uint8 GetNpcBotMountLevel100();
         static int32 GetBotInfoPacketsLimit();
@@ -254,13 +264,14 @@ class AC_GAME_API BotMgr
         static void SetBotContestedPvP(Creature const* bot);
         bool IsMapAllowedForBots(Map const* map) const;
         bool RestrictBots(Creature const* bot, bool add) const;
-        bool IsPartyInCombat() const;
+        bool IsPartyInCombat(bool is_pvp) const;
         bool HasBotClass(uint8 botclass) const;
         bool HasBotWithSpec(uint8 spec, bool alive = true) const;
         bool HasBotPetType(uint32 petType) const;
         bool IsBeingResurrected(WorldObject const* corpse) const;
 
-        static uint32 GetNpcBotCost(uint8 level, uint8 botclass);
+        static uint32 GetNpcBotCostRent();
+        static uint32 GetNpcBotCostHire(uint8 level, uint8 botclass);
         static std::string GetNpcBotCostStr(uint8 level, uint8 botclass);
         static uint8 BotClassByClassName(std::string const& className);
         static uint8 GetBotPlayerClass(uint8 bot_class);
@@ -309,6 +320,7 @@ class AC_GAME_API BotMgr
         bool GetBotAllowCombatPositioning() const;
         void SetBotAllowCombatPositioning(bool allow);
 
+        bool GetBotsHidden() const;
         void SetBotsHidden(bool hidden);
 
         uint32 GetEngageDelayDPS() const;
@@ -370,10 +382,12 @@ class AC_GAME_API BotMgr
         Player* const _owner;
         BotMap _bots;
         std::list<ObjectGuid> _removeList;
+        std::list<std::pair<ObjectGuid, BotRemoveType>> _delayedRemoveList;
         DPSTracker* const _dpstracker;
         NpcBotMgrData* _data;
 
         bool _quickrecall;
+        bool _update_lock;
 
         AoeSpotsVec _aoespots;
 

@@ -1030,7 +1030,7 @@ public:
                     {
                         Player* pl = ref->GetSource();
                         if (pl && pl->IsAlive() && pl->FindMap() == me->GetMap() && pl->GetDistance(me) < 30 &&
-                            pl->IsFalling() && pl->m_movementInfo.fallTime > 1000 &&
+                            pl->IsFalling() && pl->m_movementInfo.fallTime > 3000 &&
                             !pl->HasAuraType(SPELL_AURA_HOVER))
                         {
                             if (doCast(pl, GetSpell(LEVITATE_1)))

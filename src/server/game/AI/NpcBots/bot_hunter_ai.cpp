@@ -109,16 +109,6 @@ enum HunterPassives
 
 enum HunterSpecial
 {
-    ASPECT_NONE                         = 0,
-    ASPECT_MONKEY                       = 1,
-    ASPECT_HAWK                         = 2,
-    ASPECT_CHEETAH                      = 3,
-    ASPECT_VIPER                        = 4,
-    ASPECT_BEAST                        = 5,
-    ASPECT_PACK                         = 6,
-    ASPECT_WILD                         = 7,
-    ASPECT_DRAGONHAWK                   = 8,
-
     SPECIFIC_ASPECT_MONKEY              = 0x001,
     SPECIFIC_ASPECT_HAWK                = 0x002,
     SPECIFIC_ASPECT_CHEETAH             = 0x004,
@@ -228,6 +218,8 @@ public:
         {
             _botclass = BOT_CLASS_HUNTER;
 
+            myPetType = 0;
+
             InitUnitFlags();
         }
 
@@ -250,7 +242,7 @@ public:
         void KilledUnit(Unit* u) override { bot_ai::KilledUnit(u); }
         void EnterEvadeMode(EvadeReason why = EVADE_REASON_OTHER) override { bot_ai::EnterEvadeMode(why); }
         void MoveInLineOfSight(Unit* u) override { bot_ai::MoveInLineOfSight(u); }
-        void JustDied(Unit* u) override { Aspect = 0; UnsummonAll(false); bot_ai::JustDied(u); }
+        void JustDied(Unit* u) override { _myaspect = 0; UnsummonAll(false); bot_ai::JustDied(u); }
         void DoNonCombatActions(uint32 /*diff*/) { }
 
         void CheckAspects(uint32 diff)
@@ -260,7 +252,7 @@ public:
 
             aspectTimer = urand(5000, 10000);
 
-            if (Aspect == ASPECT_VIPER && GetManaPCT(me) < 50)
+            if (_myaspect == ASPECT_OF_THE_VIPER_1 && GetManaPCT(me) < 50)
                 return;
 
             uint32 ASPECT_OF_THE_MONKEY = GetSpell(ASPECT_OF_THE_MONKEY_1);
@@ -275,7 +267,7 @@ public:
             std::map<uint32 /*baseid*/, uint32 /*curid*/> idMap;
             uint32 mask = _getAspectsMask(idMap);
 
-            if (Aspect == ASPECT_WILD) //manual
+            if (_myaspect == ASPECT_OF_THE_WILD_1) //manual
             {
                 if (idMap[ASPECT_OF_THE_WILD_1] != ASPECT_OF_THE_WILD)
                     if (doCast(me, ASPECT_OF_THE_WILD))
@@ -292,10 +284,10 @@ public:
                 }
                 return;
             }
-            else if (Aspect == ASPECT_VIPER && GetManaPCT(me) > 50)
+            else if (_myaspect == ASPECT_OF_THE_VIPER_1 && GetManaPCT(me) > 50)
             {
                 me->RemoveAurasDueToSpell(ASPECT_OF_THE_VIPER_1, me->GetGUID());
-                Aspect = ASPECT_NONE;
+                _myaspect = 0;
             }
 
             if (IAmFree())
@@ -307,7 +299,7 @@ public:
                         (me->IsInCombat() || !map_allows_mount || !IsOutdoors() || IsFlagCarrier(me)) :
                         !me->IsWithinDist(me->GetVictim(), 8.0f + GetSpellAttackRange(true))))
                 {
-                    if (ASPECT_OF_THE_CHEETAH && !(mask & (SPECIFIC_ASPECT_CHEETAH | SPECIFIC_ASPECT_PACK)) && Aspect != ASPECT_CHEETAH)
+                    if (ASPECT_OF_THE_CHEETAH && !(mask & (SPECIFIC_ASPECT_CHEETAH | SPECIFIC_ASPECT_PACK)) && _myaspect != ASPECT_OF_THE_CHEETAH_1)
                     {
                         if (doCast(me, ASPECT_OF_THE_CHEETAH))
                             return;
@@ -315,16 +307,16 @@ public:
 
                     return;
                 }
-                else if (Aspect == ASPECT_CHEETAH)
+                else if (_myaspect == ASPECT_OF_THE_CHEETAH_1)
                 {
                     me->RemoveAurasDueToSpell(ASPECT_OF_THE_CHEETAH_1, me->GetGUID());
-                    Aspect = ASPECT_NONE;
+                    _myaspect = 0;
                 }
             }
             else
             {
                 //choose movement aspect first
-                if (!master->GetBotMgr()->IsPartyInCombat())
+                if (!master->GetBotMgr()->IsPartyInCombat(false))
                 {
                     if (!(mask & SPECIFIC_ASPECT_PACK))
                     {
@@ -338,7 +330,7 @@ public:
                                     return;
                             }
                         }
-                        if (ASPECT_OF_THE_CHEETAH && Aspect != ASPECT_CHEETAH)
+                        if (ASPECT_OF_THE_CHEETAH && _myaspect != ASPECT_OF_THE_CHEETAH_1)
                         {
                             movFlags = me->m_movementInfo.GetMovementFlags();
                             if ((movFlags & MOVEMENTFLAG_FORWARD) && !(movFlags & (MOVEMENTFLAG_FALLING_FAR)) &&
@@ -352,33 +344,33 @@ public:
 
                     return;
                 }
-                else if (Aspect == ASPECT_PACK)
+                else if (_myaspect == ASPECT_OF_THE_PACK_1)
                 {
                     me->RemoveAurasDueToSpell(ASPECT_OF_THE_PACK_1, me->GetGUID());
-                    Aspect = ASPECT_NONE;
+                    _myaspect = 0;
                 }
             }
 
-            if ((Aspect == ASPECT_DRAGONHAWK && idMap[ASPECT_OF_THE_DRAGONHAWK_1] == ASPECT_OF_THE_DRAGONHAWK) ||
-                (!ASPECT_OF_THE_DRAGONHAWK && ((Aspect == ASPECT_HAWK && idMap[ASPECT_OF_THE_HAWK_1] == ASPECT_OF_THE_HAWK) ||
-                Aspect == ASPECT_MONKEY)))
+            if ((_myaspect == ASPECT_OF_THE_DRAGONHAWK_1 && idMap[ASPECT_OF_THE_DRAGONHAWK_1] == ASPECT_OF_THE_DRAGONHAWK) ||
+                (!ASPECT_OF_THE_DRAGONHAWK && ((_myaspect == ASPECT_OF_THE_HAWK_1 && idMap[ASPECT_OF_THE_HAWK_1] == ASPECT_OF_THE_HAWK) ||
+                _myaspect == ASPECT_OF_THE_MONKEY_1)))
                 return;
 
             if (ASPECT_OF_THE_DRAGONHAWK &&
-                (Aspect != ASPECT_DRAGONHAWK || idMap[ASPECT_OF_THE_DRAGONHAWK_1] != ASPECT_OF_THE_DRAGONHAWK))
+                (_myaspect != ASPECT_OF_THE_DRAGONHAWK_1 || idMap[ASPECT_OF_THE_DRAGONHAWK_1] != ASPECT_OF_THE_DRAGONHAWK))
             {
                 if (doCast(me, ASPECT_OF_THE_DRAGONHAWK))
                     return;
                 return;
             }
             if (ASPECT_OF_THE_HAWK && (!IsTank() || (!ASPECT_OF_THE_MONKEY && !ASPECT_OF_THE_DRAGONHAWK)) &&
-                (Aspect != ASPECT_HAWK || idMap[ASPECT_OF_THE_HAWK_1] != ASPECT_OF_THE_HAWK))
+                (_myaspect != ASPECT_OF_THE_HAWK_1 || idMap[ASPECT_OF_THE_HAWK_1] != ASPECT_OF_THE_HAWK))
             {
                 if (doCast(me, ASPECT_OF_THE_HAWK))
                     return;
                 return;
             }
-            if (ASPECT_OF_THE_MONKEY && Aspect != ASPECT_MONKEY)
+            if (ASPECT_OF_THE_MONKEY && _myaspect != ASPECT_OF_THE_MONKEY_1)
             {
                 if (doCast(me, ASPECT_OF_THE_MONKEY))
                     return;
@@ -1669,28 +1661,14 @@ public:
             switch (baseId)
             {
                 case ASPECT_OF_THE_MONKEY_1:
-                    Aspect = ASPECT_MONKEY;
-                    break;
                 case ASPECT_OF_THE_HAWK_1:
-                    Aspect = ASPECT_HAWK;
-                    break;
                 case ASPECT_OF_THE_CHEETAH_1:
-                    Aspect = ASPECT_CHEETAH;
-                    break;
                 case ASPECT_OF_THE_VIPER_1:
-                    Aspect = ASPECT_VIPER;
-                    break;
                 case ASPECT_OF_THE_BEAST_1:
-                    Aspect = ASPECT_BEAST;
-                    break;
                 case ASPECT_OF_THE_PACK_1:
-                    Aspect = ASPECT_PACK;
-                    break;
                 case ASPECT_OF_THE_WILD_1:
-                    Aspect = ASPECT_WILD;
-                    break;
                 case ASPECT_OF_THE_DRAGONHAWK_1:
-                    Aspect = ASPECT_DRAGONHAWK;
+                    _myaspect = baseId;
                     break;
                 default:
                     break;
@@ -2086,19 +2064,22 @@ public:
                 case BOTAI_MISC_PET_AVAILABLE_4:
                     return BOT_PET_TENACITY_START;
                 case BOTAI_MISC_PET_AVAILABLE_5:
-                    return me->GetLevel() >= 80 ? BOT_PET_SILITHID : 0;
+                    return _spec == BOT_SPEC_HUNTER_BEASTMASTERY && me->GetLevel() >= 80 ? BOT_PET_SILITHID : 0;
                 case BOTAI_MISC_PET_AVAILABLE_6:
-                    return me->GetLevel() >= 80 ? BOT_PET_CHIMAERA : 0;
+                    return _spec == BOT_SPEC_HUNTER_BEASTMASTERY && me->GetLevel() >= 80 ? BOT_PET_CHIMAERA : 0;
                 case BOTAI_MISC_PET_AVAILABLE_7:
-                    return me->GetLevel() >= 80 ? BOT_PET_SPIRITBEAST : 0;
+                    return _spec == BOT_SPEC_HUNTER_BEASTMASTERY && me->GetLevel() >= 80 ? BOT_PET_SPIRITBEAST : 0;
                 case BOTAI_MISC_PET_AVAILABLE_8:
-                    return me->GetLevel() >= 80 ? BOT_PET_COREHOUND : 0;
+                    return _spec == BOT_SPEC_HUNTER_BEASTMASTERY && me->GetLevel() >= 80 ? BOT_PET_COREHOUND : 0;
                 case BOTAI_MISC_PET_AVAILABLE_9:
-                    return me->GetLevel() >= 80 ? BOT_PET_DEVILSAUR : 0;
+                    return _spec == BOT_SPEC_HUNTER_BEASTMASTERY && me->GetLevel() >= 80 ? BOT_PET_DEVILSAUR : 0;
                 case BOTAI_MISC_PET_AVAILABLE_10:
-                    return me->GetLevel() >= 80 ? BOT_PET_RHINO : 0;
+                    return _spec == BOT_SPEC_HUNTER_BEASTMASTERY && me->GetLevel() >= 80 ? BOT_PET_RHINO : 0;
                 case BOTAI_MISC_PET_AVAILABLE_11:
-                    return me->GetLevel() >= 80 ? BOT_PET_WORM : 0;
+                    return _spec == BOT_SPEC_HUNTER_BEASTMASTERY && me->GetLevel() >= 80 ? BOT_PET_WORM : 0;
+                case BOTAI_MISC_AURA_TYPE:
+                    return _myaspect;
+                    break;
                 default:
                     return 0;
             }
@@ -2115,13 +2096,13 @@ public:
                 default:
                     break;
             }
+
+            bot_ai::SetAIMiscValue(data, value);
         }
 
         void Reset() override
         {
             UnsummonAll(false);
-
-            myPetType = 0;
 
             trapTimer = 0;
             stingTimer = 0;
@@ -2132,7 +2113,7 @@ public:
 
             petSummonTimer = 5000;
 
-            Aspect = 0;
+            _myaspect = 0;
 
             DefaultInit();
         }
@@ -2285,17 +2266,17 @@ public:
         void FillAbilitiesSpecifics(Player const* player, std::list<std::string> &specList) override
         {
             uint32 textId;
-            switch (Aspect)
+            switch (_myaspect)
             {
-                case ASPECT_MONKEY:     textId = BOT_TEXT_MONKEY;       break;
-                case ASPECT_HAWK:       textId = BOT_TEXT_HAWK;         break;
-                case ASPECT_CHEETAH:    textId = BOT_TEXT_CHEETAH;      break;
-                case ASPECT_VIPER:      textId = BOT_TEXT_VIPER;        break;
-                case ASPECT_BEAST:      textId = BOT_TEXT_BEAST;        break;
-                case ASPECT_PACK:       textId = BOT_TEXT_PACK;         break;
-                case ASPECT_WILD:       textId = BOT_TEXT_WILD;         break;
-                case ASPECT_DRAGONHAWK: textId = BOT_TEXT_DRAGONHAWK;   break;
-                default:                textId = BOT_TEXT_NOASPECT;     break;
+                case ASPECT_OF_THE_MONKEY_1:     textId = BOT_TEXT_MONKEY;     break;
+                case ASPECT_OF_THE_HAWK_1:       textId = BOT_TEXT_HAWK;       break;
+                case ASPECT_OF_THE_CHEETAH_1:    textId = BOT_TEXT_CHEETAH;    break;
+                case ASPECT_OF_THE_VIPER_1:      textId = BOT_TEXT_VIPER;      break;
+                case ASPECT_OF_THE_BEAST_1:      textId = BOT_TEXT_BEAST;      break;
+                case ASPECT_OF_THE_PACK_1:       textId = BOT_TEXT_PACK;       break;
+                case ASPECT_OF_THE_WILD_1:       textId = BOT_TEXT_WILD;       break;
+                case ASPECT_OF_THE_DRAGONHAWK_1: textId = BOT_TEXT_DRAGONHAWK; break;
+                default:                         textId = BOT_TEXT_NOASPECT;   break;
             }
             specList.push_back(LocalizedNpcText(player, BOT_TEXT_ASPECT) + ": " + LocalizedNpcText(player, textId));
         }
@@ -2319,7 +2300,7 @@ public:
 
     private:
         uint32 trapTimer, stingTimer, aspectTimer, flareTimer, misdirectionTimer, checkMendTimer;
-        uint8 Aspect;
+        uint32 _myaspect;
         //Pet
         uint32 myPetType;
         uint32 petSummonTimer;

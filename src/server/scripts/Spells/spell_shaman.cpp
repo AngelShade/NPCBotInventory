@@ -802,6 +802,38 @@ class spell_sha_fire_nova : public SpellScript
 {
     PrepareSpellScript(spell_sha_fire_nova);
 
+    SpellCastResult CheckCast()
+    {
+        if (Unit* caster = GetCaster())
+        {
+            // Find all units within 60 yd
+            std::list<Unit*> targets;
+            float range = 60.0f;
+            Acore::AnyUnitInObjectRangeCheck fsu_check(caster, range);
+            Acore::UnitListSearcher<Acore::AnyUnitInObjectRangeCheck> searcher(caster, targets, fsu_check);
+            CellCoord pair(Acore::ComputeCellCoord(caster->GetPositionX(), caster->GetPositionY()));
+            Cell cell(pair);
+            cell.SetNoCreate();
+            cell.VisitAllObjects(caster, searcher, range);
+
+            // Check for Flame Shock targets
+            for (Unit* target : targets)
+            {
+                if (target->HasAuraTypeWithFamilyFlags(SPELL_AURA_PERIODIC_DAMAGE, 11, 0x10000000))
+                {
+                    return SPELL_CAST_OK;
+                }
+            }
+
+            if (Player* player = caster->ToPlayer())
+            {
+                player->GetSession()->SendAreaTriggerMessage("No target in range is affected by Flame Shock.");
+            }
+            return SPELL_FAILED_BAD_TARGETS;
+        }
+        return SPELL_CAST_OK;
+    }
+
     bool Validate(SpellInfo const* spellInfo) override
     {
         SpellInfo const* firstRankSpellInfo = sSpellMgr->GetSpellInfo(SPELL_SHAMAN_FIRE_NOVA_R1);
@@ -870,6 +902,7 @@ class spell_sha_fire_nova : public SpellScript
 
     void Register() override
     {
+        OnCheckCast += SpellCheckCastFn(spell_sha_fire_nova::CheckCast);
         OnEffectHitTarget += SpellEffectFn(spell_sha_fire_nova::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
     }
 };

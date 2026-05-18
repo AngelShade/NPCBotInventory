@@ -229,6 +229,8 @@ public:
         {
             _botclass = BOT_CLASS_WARLOCK;
 
+            myPetType = 0;
+
             InitUnitFlags();
         }
 
@@ -665,7 +667,7 @@ public:
             //Hellfire interrupt
             Spell const* spell = me->GetCurrentSpell(CURRENT_CHANNELED_SPELL);
             if (spell && spell->GetSpellInfo()->GetFirstRankSpell()->Id == HELLFIRE_1 &&
-                ((!IAmFree() && !master->GetBotMgr()->IsPartyInCombat()) || GetHealthPCT(me) < 25))
+                ((!IAmFree() && !master->GetBotMgr()->IsPartyInCombat(false)) || GetHealthPCT(me) < 25))
                 me->InterruptSpell(CURRENT_CHANNELED_SPELL);
             else
             {
@@ -1943,13 +1945,13 @@ public:
                 default:
                     break;
             }
+
+            bot_ai::SetAIMiscValue(data, value);
         }
 
         void Reset() override
         {
             UnsummonAll(false);
-
-            myPetType = 0;
 
             fearTimer = 0;
             banishTimer = 0;

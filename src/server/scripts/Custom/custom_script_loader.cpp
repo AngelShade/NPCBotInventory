@@ -104,7 +104,7 @@ void AddSC_ursa_lair_screature();
 void AddSC_boss_thermaplugg();
 void AddSC_custom_priest_spells();
 void AddSC_npc_account_item_bank();
-
+void AddSC_spell_lock_shadow_cleave();
 //void AddSC_PlayerTeleportRevive();
 //void AddSC_transform_race_command();
 //void AddSC_boss_the_hidden_watcher();
@@ -201,7 +201,7 @@ void AddCustomScripts()
     AddSC_boss_thermaplugg();
     AddSC_custom_priest_spells();
     AddSC_npc_account_item_bank();
-
+    AddSC_spell_lock_shadow_cleave();
     //AddSC_PlayerTeleportRevive();
     //AddSC_transform_race_command();
     //AddSC_boss_the_hidden_watcher();

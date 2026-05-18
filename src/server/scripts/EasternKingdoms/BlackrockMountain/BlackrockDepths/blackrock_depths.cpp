@@ -754,6 +754,7 @@ public:
     {
         float center_x, center_y, radius;
         uint32 moveTimer;
+        uint32 combatStopTimer;
 
         npc_wandering_flame_customAI(Creature* creature) : ScriptedAI(creature)
         {
@@ -766,6 +767,7 @@ public:
             radius = 15.0f;
 
             moveTimer = 1;
+            combatStopTimer = 3000; // 3 seconds
         }
 
         void MoveToNextPoint()
@@ -790,11 +792,21 @@ public:
             if (moveTimer <= diff)
             {
                 MoveToNextPoint();
-                moveTimer = 1000;
+                moveTimer = 1000; // Move every second
             }
             else
             {
                 moveTimer -= diff;
+            }
+
+            if (combatStopTimer <= diff)
+            {
+                me->CombatStop(); // Force the creature to leave combat
+                combatStopTimer = 3000; // Reset timer for 3 seconds
+            }
+            else
+            {
+                combatStopTimer -= diff;
             }
         }
     };

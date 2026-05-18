@@ -511,7 +511,7 @@ class spell_gen_grow_flower_patch : public SpellScript
 
     SpellCastResult CheckCast()
     {
-        if (GetCaster()->HasAuraType(SPELL_AURA_MOD_STEALTH) || GetCaster()->HasAuraType(SPELL_AURA_MOD_INVISIBILITY))
+        if (GetCaster()->HasStealthAura() || GetCaster()->HasInvisibilityAura())
             return SPELL_FAILED_DONT_REPORT;
 
         return SPELL_CAST_OK;
@@ -653,7 +653,6 @@ class spell_gen_disabled_above_63 : public AuraScript
         DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_disabled_above_63::CalculateAmount, EFFECT_ALL, SPELL_AURA_ANY);
     }
 };
-
 
 // 59630 - Black Magic
 class spell_gen_black_magic_enchant : public AuraScript
@@ -5438,6 +5437,87 @@ class spell_gen_steal_weapon : public AuraScript
     }
 };
 
+// 43536 - Serverside - SetHealth (75%)
+// 43537 - Serverside - SetHealth (50%)
+// 43538 - Serverside - SetHealth (25%)
+class spell_gen_set_health : public SpellScript
+{
+    PrepareSpellScript(spell_gen_set_health);
+
+    void HandleScript(SpellEffIndex /*effIndex*/)
+    {
+        if (Unit* target = GetHitUnit())
+        {
+            uint32 value = GetSpellInfo()->Effects[EFFECT_0].CalcValue();
+            target->SetHealth(target->CountPctFromMaxHealth(value));
+        }
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_gen_set_health::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+    }
+};
+
+// 67561 - Serverside - Pet Scaling - Master Spell 06 - Spell Hit, Expertise, Spell Penetration
+class spell_pet_spellhit_expertise_spellpen_scaling : public AuraScript
+{
+    PrepareAuraScript(spell_pet_spellhit_expertise_spellpen_scaling)
+
+    int32 CalculatePercent(float hitChance, float cap, float maxChance)
+    {
+        return (hitChance / cap) * maxChance;
+    }
+
+    void CalculateSpellHitAmount(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
+    {
+        if (Player* modOwner = GetUnitOwner()->GetSpellModOwner())
+            amount = CalculatePercent(modOwner->m_modMeleeHitChance, 8.0f, 17.0f);
+    }
+
+    void CalculateExpertiseAmount(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
+    {
+        if (Player* modOwner = GetUnitOwner()->GetSpellModOwner())
+            amount = CalculatePercent(modOwner->m_modMeleeHitChance, 8.0f, 26.0f);
+    }
+
+    void CalculateSpellPenAmount(AuraEffect const* /*aurEff*/, int32& amount, bool& /*canBeRecalculated*/)
+    {
+        if (Player* modOwner = GetUnitOwner()->GetSpellModOwner())
+            amount = modOwner->GetTotalAuraModifierByMiscMask(SPELL_AURA_MOD_TARGET_RESISTANCE, SPELL_SCHOOL_MASK_SPELL);
+    }
+
+    void HandleEffectApply(AuraEffect const* aurEff, AuraEffectHandleModes /*mode*/)
+    {
+        GetUnitOwner()->ApplySpellImmune(GetId(), IMMUNITY_STATE, aurEff->GetAuraType(), true, SPELL_BLOCK_TYPE_POSITIVE);
+    }
+
+    void CalcPeriodic(AuraEffect const* /*aurEff*/, bool& isPeriodic, int32& amplitude)
+    {
+        if (!GetUnitOwner()->IsPet())
+            return;
+
+        isPeriodic = true;
+        amplitude = 3 * IN_MILLISECONDS;
+    }
+
+    void HandlePeriodic(AuraEffect const* aurEff)
+    {
+        PreventDefaultAction();
+        GetEffect(aurEff->GetEffIndex())->RecalculateAmount();
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_pet_spellhit_expertise_spellpen_scaling::CalculateSpellHitAmount, EFFECT_0, SPELL_AURA_MOD_SPELL_HIT_CHANCE);
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_pet_spellhit_expertise_spellpen_scaling::CalculateExpertiseAmount, EFFECT_1, SPELL_AURA_MOD_EXPERTISE);
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_pet_spellhit_expertise_spellpen_scaling::CalculateSpellPenAmount, EFFECT_2, SPELL_AURA_MOD_TARGET_RESISTANCE);
+        OnEffectApply += AuraEffectApplyFn(spell_pet_spellhit_expertise_spellpen_scaling::HandleEffectApply, EFFECT_ALL, SPELL_AURA_ANY, AURA_EFFECT_HANDLE_REAL);
+        DoEffectCalcPeriodic += AuraEffectCalcPeriodicFn(spell_pet_spellhit_expertise_spellpen_scaling::CalcPeriodic, EFFECT_ALL, SPELL_AURA_ANY);
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_pet_spellhit_expertise_spellpen_scaling::HandlePeriodic, EFFECT_ALL, SPELL_AURA_ANY);
+    }
+};
+
 void AddSC_generic_spell_scripts()
 {
     RegisterSpellScript(spell_silithyst);
@@ -5469,6 +5549,7 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScriptWithArgs(spell_gen_select_target_count, "spell_gen_select_target_count_7_1", TARGET_UNIT_SRC_AREA_ENTRY, 1);
     RegisterSpellScriptWithArgs(spell_gen_select_target_count, "spell_gen_select_target_count_24_1", TARGET_UNIT_CONE_ENEMY_24, 1);
     RegisterSpellScriptWithArgs(spell_gen_select_target_count, "spell_gen_select_target_count_30_1", TARGET_UNIT_SRC_AREA_ALLY, 1);
+    RegisterSpellScriptWithArgs(spell_gen_select_target_count, "spell_gen_select_target_count_15_4", TARGET_UNIT_SRC_AREA_ENEMY, 4);
     RegisterSpellScript(spell_gen_use_spell_base_level_check);
     RegisterSpellScript(spell_gen_proc_from_direct_damage);
     RegisterSpellScript(spell_gen_no_offhand_proc);
@@ -5596,4 +5677,6 @@ void AddSC_generic_spell_scripts()
     RegisterSpellScript(spell_gen_consumption);
     RegisterSpellScript(spell_gen_sober_up);
     RegisterSpellScript(spell_gen_steal_weapon);
+    RegisterSpellScript(spell_gen_set_health);
+    RegisterSpellScript(spell_pet_spellhit_expertise_spellpen_scaling);
 }

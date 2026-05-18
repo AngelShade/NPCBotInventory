@@ -20,116 +20,70 @@
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "zulgurub.h"
-/* ScriptData
-SDName: Boss_Gahz'ranka
-SD%Complete: 85
-SDComment: Massive Geyser with knockback not working. Spell buggy.
-SDCategory: Zul'Gurub
-EndScriptData */
 
 enum Spells
 {
-    SPELL_FROSTBREATH               = 16099,
-    SPELL_MASSIVEGEYSER             = 22421,
-    SPELL_SLAM                      = 24326,
-    SPELL_THRASH                    = 3417, // Triggers 3391
-    SPELL_SPLASH                    = 24593
-};
-
-enum Events
-{
-    EVENT_FROSTBREATH               = 1,
-    EVENT_MASSIVEGEYSER             = 2,
-    EVENT_SLAM                      = 3
+    SPELL_FROSTBREATH = 16099,
+    SPELL_MASSIVEGEYSER = 22421,
+    SPELL_SLAM = 24326,
+    SPELL_THRASH = 3417, // Triggers 3391
+    SPELL_SPLASH = 24593
 };
 
 enum Misc
 {
-    GAMEOBJECT_MUDSKUNK_LURE        = 180346
+    GAMEOBJECT_MUDSKUNK_LURE = 180346
 };
 
-class boss_gahzranka : public CreatureScript
+struct boss_gahzranka : public BossAI
 {
-public:
-    boss_gahzranka() : CreatureScript("boss_gahzranka") { }
+    boss_gahzranka(Creature* creature) : BossAI(creature, DATA_GAHZRANKA) {}
 
-    struct boss_gahzrankaAI : public BossAI
+    void IsSummonedBy(WorldObject* /*summoner*/) override
     {
-        boss_gahzrankaAI(Creature* creature) : BossAI(creature, DATA_GAHZRANKA) { }
+        me->GetMotionMaster()->MovePath(me->GetEntry() * 10, false);
+    }
 
-        void IsSummonedBy(WorldObject* /*summoner*/) override
-        {
-            me->GetMotionMaster()->MovePath(me->GetEntry() * 10, false);
-        }
+    void Reset() override
+    {
+        _Reset();
+        DoCastSelf(875167, true);
+    }
 
-        void Reset() override
+    void JustDied(Unit* /*killer*/) override
+    {
+        _JustDied();
+        DoCastSelf(875167, true);
+        Map::PlayerList const& players = me->GetMap()->GetPlayers();
+        for (auto const& playerPair : players)
         {
-            _Reset();
-            DoCastSelf(875167, true);
-        }
-
-        void JustDied(Unit* /*killer*/) override
-        {
-            _JustDied();
-            DoCastSelf(875167, true);
-            Map::PlayerList const& players = me->GetMap()->GetPlayers();
-            for (auto const& playerPair : players)
+            Player* player = playerPair.GetSource();
+            if (player)
             {
-                Player* player = playerPair.GetSource();
-                if (player)
-                {
-                    DistributeChallengeRewards(player, me, 1, false);
-                }
+                DistributeChallengeRewards(player, me, 1, false);
             }
         }
+    }
 
-        void JustEngagedWith(Unit* /*who*/) override
-        {
-            _JustEngagedWith();
-            me->AddAura(SPELL_THRASH, me);
-            events.ScheduleEvent(EVENT_FROSTBREATH, 8s);
-            events.ScheduleEvent(EVENT_MASSIVEGEYSER, 25s);
-            events.ScheduleEvent(EVENT_SLAM, 15s);
-        }
-
-        void UpdateAI(uint32 diff) override
-        {
-            if (!UpdateVictim())
-                return;
-
-            events.Update(diff);
-
-            if (me->HasUnitState(UNIT_STATE_CASTING))
-                return;
-
-            while (uint32 eventId = events.ExecuteEvent())
-            {
-                switch (eventId)
-                {
-                    case EVENT_FROSTBREATH:
-                        DoCastVictim(SPELL_FROSTBREATH);
-                        events.ScheduleEvent(EVENT_FROSTBREATH, 8s, 20s);
-                        break;
-                    case EVENT_MASSIVEGEYSER:
-                        DoCastVictim(SPELL_MASSIVEGEYSER);
-                        events.ScheduleEvent(EVENT_MASSIVEGEYSER, 22s, 32s);
-                        break;
-                    case EVENT_SLAM:
-                        DoCastVictim(SPELL_SLAM, true);
-                        events.ScheduleEvent(EVENT_SLAM, 12s, 20s);
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            DoMeleeAttackIfReady();
-        }
-    };
-
-    CreatureAI* GetAI(Creature* creature) const override
+    void JustEngagedWith(Unit* /*who*/) override
     {
-        return GetZulGurubAI<boss_gahzrankaAI>(creature);
+        _JustEngagedWith();
+        me->AddAura(SPELL_THRASH, me);
+
+        ScheduleTimedEvent(8s, [&]
+            {
+                DoCastVictim(SPELL_FROSTBREATH);
+            }, 8s, 20s);
+
+        ScheduleTimedEvent(25s, [&]
+            {
+                DoCastVictim(SPELL_MASSIVEGEYSER);
+            }, 22s, 32s);
+
+        ScheduleTimedEvent(15s, [&]
+            {
+                DoCastVictim(SPELL_SLAM, true);
+            }, 12s, 20s);
     }
 };
 
@@ -140,23 +94,15 @@ class spell_gahzranka_slam : public SpellScript
     void FilterTargets(std::list<WorldObject*>& targets)
     {
         if (Unit* caster = GetCaster())
-        {
             _wipeThreat = targets.size() < caster->GetThreatMgr().GetThreatListSize();
-        }
     }
 
     void HandleWipeThreat(SpellEffIndex /*effIndex*/)
     {
         if (_wipeThreat)
-        {
             if (Unit* caster = GetCaster())
-            {
                 if (Unit* target = GetHitUnit())
-                {
                     caster->GetThreatMgr().ModifyThreatByPercent(target, -100);
-                }
-            }
-        }
     }
 
     void Register() override
@@ -182,20 +128,20 @@ class spell_pagles_point_cast : public SpellScript
                 if (!instanceScript->GetData(DATA_GAHZRANKA) && !caster->FindNearestCreature(NPC_GAHZRANKA, 50.0f))
                 {
                     caster->m_Events.AddEventAtOffset([caster]()
-                    {
-                        if (GameObject* lure = caster->SummonGameObject(GAMEOBJECT_MUDSKUNK_LURE, -11688.5f, -1737.74f, 10.409842f, 1.f, 0.f, 0.f, 0.f, 0.f, 30 * IN_MILLISECONDS))
                         {
-                            lure->DespawnOrUnsummon(5s);
-                            caster->m_Events.AddEventAtOffset([caster]()
+                            if (GameObject* lure = caster->SummonGameObject(GAMEOBJECT_MUDSKUNK_LURE, -11688.5f, -1737.74f, 10.409842f, 1.f, 0.f, 0.f, 0.f, 0.f, 30 * IN_MILLISECONDS))
                             {
-                                if (!caster->FindNearestCreature(NPC_GAHZRANKA, 50.0f))
-                                {
-                                    caster->CastSpell(caster, SPELL_SPLASH, true);
-                                    caster->SummonCreature(NPC_GAHZRANKA, -11688.5f, -1723.74f, -5.78f, 0.f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 5 * DAY * IN_MILLISECONDS);
-                                }
-                            }, 5s);
-                        }
-                    }, 2s);
+                                lure->DespawnOrUnsummon(5s);
+                                caster->m_Events.AddEventAtOffset([caster]()
+                                    {
+                                        if (!caster->FindNearestCreature(NPC_GAHZRANKA, 50.0f))
+                                        {
+                                            caster->CastSpell(caster, SPELL_SPLASH, true);
+                                            caster->SummonCreature(NPC_GAHZRANKA, -11688.5f, -1723.74f, -5.78f, 0.f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 5 * DAY * IN_MILLISECONDS);
+                                        }
+                                    }, 5s);
+                            }
+                        }, 2s);
                 }
             }
         }
@@ -209,7 +155,7 @@ class spell_pagles_point_cast : public SpellScript
 
 void AddSC_boss_gahzranka()
 {
-    new boss_gahzranka();
+    RegisterZulGurubCreatureAI(boss_gahzranka);
     RegisterSpellScript(spell_gahzranka_slam);
     RegisterSpellScript(spell_pagles_point_cast);
 }

@@ -76,6 +76,9 @@ SmartAI::SmartAI(Creature* c) : CreatureAI(c)
     m_ConditionsTimer = 0;
     if (me->GetVehicleKit())
         conditions = sConditionMgr->GetConditionsForNotGroupedEntry(CONDITION_SOURCE_TYPE_CREATURE_TEMPLATE_VEHICLE, me->GetEntry());
+    //Dinkle:
+    mMeleeChaseCheckTimer = 3000;
+    //Dinkle end
 }
 
 bool SmartAI::IsAIControlled() const
@@ -540,7 +543,35 @@ void SmartAI::UpdateAI(uint32 diff)
 
     if (!hasVictim)
         return;
+    //Dinkle
+    if (!me->IsWithinMeleeRange(me->GetVictim()))
+    {
 
+        if (me->HasUnitState(UNIT_STATE_STUNNED | UNIT_STATE_ROOT) ||
+            me->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE) ||
+            !mCanCombatMove)
+        {
+            return;
+        }
+
+        if (mMeleeChaseCheckTimer == 0)
+        {
+            // If the NPC is currently casting, don't chase yet
+            if (!me->HasUnitState(UNIT_STATE_CASTING))
+            {
+                // If not casting, and we're stopped, then MoveChase
+                if (me->IsStopped())
+                    me->GetMotionMaster()->MoveChase(me->GetVictim());
+            }
+
+            // Reset the timer to 3000 ms (3 seconds)
+            mMeleeChaseCheckTimer = 3000;
+        }
+
+        // We can't do a melee attack if out of range, so return now
+        return;
+    }
+    //end Dinkle
     if (mCanAutoAttack)
         DoMeleeAttackIfReady();
 }

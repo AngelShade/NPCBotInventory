@@ -257,6 +257,10 @@ private:
     void CheckConditions(const uint32 diff);
     ConditionList conditions;
     uint32 m_ConditionsTimer;
+
+    //Dinkle:
+    uint32 mMeleeChaseCheckTimer;
+    //end Dinkle
 };
 
 class SmartGameObjectAI : public GameObjectAI

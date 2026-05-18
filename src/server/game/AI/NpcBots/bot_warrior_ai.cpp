@@ -2020,7 +2020,7 @@ public:
             OnOwnerDamagedBy(u);
         }
 
-        void SetAIMiscValue(uint32 data, uint32 /*value*/) override
+        void SetAIMiscValue(uint32 data, uint32 value) override
         {
             switch (data)
             {
@@ -2033,6 +2033,8 @@ public:
                 default:
                     break;
             }
+
+            bot_ai::SetAIMiscValue(data, value);
         }
 
         void Reset() override
