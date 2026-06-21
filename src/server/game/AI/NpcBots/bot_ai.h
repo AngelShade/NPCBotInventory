@@ -128,6 +128,7 @@ class bot_ai : public CreatureAI
         void ReturnHome() { _atHome = false; }
         void CommonTimers(uint32 diff);
         void ResetBotAI(uint8 resetType);
+        void SaveStats() { _saveStats(); }
         void KillEvents(bool force);
         void BotMovement(BotMovementType type, Position const* pos, Unit* target = nullptr, bool generatePath = true, float speed = 0.0f) const;
         bool CanBotMoveVehicle() const;

@@ -17,6 +17,7 @@
 
 #include "Common.h"
 #include "Item.h"
+#include "../../../../modules/mod-transmog/src/Transmogrification.h"
 #include "Log.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
@@ -577,12 +578,33 @@ void WorldSession::HandleItemQuerySingleOpcode(WorldPacket& recvData)
         queryData << pProto->BuyPrice;
         queryData << pProto->SellPrice;
         queryData << pProto->InventoryType;
-        queryData << pProto->AllowableClass;
-        queryData << pProto->AllowableRace;
+        int32 allowableClass = pProto->AllowableClass;
+        int32 allowableRace = pProto->AllowableRace;
+        int32 requiredLevel = pProto->RequiredLevel;
+        int32 requiredSkill = pProto->RequiredSkill;
+        int32 requiredSkillRank = pProto->RequiredSkillRank;
+
+        if (sTransmogrification->IsEnabled() && sTransmogrification->GetUseCollectionSystem())
+        {
+            if (sTransmogrification->IgnoreReqClass)
+                allowableClass = -1;
+            if (sTransmogrification->IgnoreReqRace)
+                allowableRace = -1;
+            if (sTransmogrification->IgnoreReqLevel)
+                requiredLevel = 1;
+            if (sTransmogrification->IgnoreReqSkill)
+            {
+                requiredSkill = 0;
+                requiredSkillRank = 0;
+            }
+        }
+
+        queryData << allowableClass;
+        queryData << allowableRace;
         queryData << pProto->ItemLevel;
-        queryData << pProto->RequiredLevel;
-        queryData << pProto->RequiredSkill;
-        queryData << pProto->RequiredSkillRank;
+        queryData << requiredLevel;
+        queryData << requiredSkill;
+        queryData << requiredSkillRank;
         queryData << pProto->RequiredSpell;
         queryData << pProto->RequiredHonorRank;
         queryData << pProto->RequiredCityRank;

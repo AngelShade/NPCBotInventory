@@ -759,7 +759,7 @@ public:
             return c->getDeathState() == DeathState::Corpse && c->GetDisplayId() == c->GetNativeDisplayId() &&
                 !c->IsVehicle() && !c->isWorldBoss() && !c->IsDungeonBoss() &&
                 ((1 << (c->GetCreatureType()-1)) & ViableCreatureTypesMask) &&
-                !c->IsControlledByPlayer() && !c->IsNPCBot() && c->GetMaxHealth() >= me->GetMaxHealth() / 4;
+                !c->IsControlledByPlayer() && !c->IsNPCBot() && !IsInBotParty(c) && c->GetMaxHealth() >= me->GetMaxHealth() / 4;
         }
 
         uint32 _corpseExplosionCheckTimer;

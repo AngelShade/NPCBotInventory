@@ -8316,10 +8316,9 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
                 loot->generateMoneyLoot(addon->mingold, addon->maxgold);
 
             //npcbot: fill wandering bot kill reward
-            if (lootid)
+            if (go->GetEntry() == GO_BOT_MONEY_BAG)
             {
-                if (go->GetEntry() == GO_BOT_MONEY_BAG)
-                    BotMgr::OnBotWandererKilled(go);
+                BotMgr::OnBotWandererKilled(go);
             }
             //end npcbot
 

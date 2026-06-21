@@ -1038,6 +1038,8 @@ public:
 
     bool HandleStatModifier(UnitMods unitMod, UnitModifierType modifierType, float amount, bool apply);
     void SetModifierValue(UnitMods unitMod, UnitModifierType modifierType, float value) { m_auraModifiersGroup[unitMod][modifierType] = value; }
+    void SetStatFlatModifier(UnitMods unitMod, UnitModifierType modifierType, float val);
+    void SetStatPctModifier(UnitMods unitMod, UnitModifierType modifierType, float val);
     [[nodiscard]] float GetModifierValue(UnitMods unitMod, UnitModifierType modifierType) const;
     [[nodiscard]] float GetTotalStatValue(Stats stat, float additionalValue = 0.0f) const;
 

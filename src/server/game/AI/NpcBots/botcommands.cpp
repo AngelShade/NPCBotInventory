@@ -672,6 +672,7 @@ public:
             //{ "toggle",     npcbotToggleCommandTable                                                                                },
             { "set",        npcbotSetCommandTable                                                                                   },
             { "equip",      HandleNpcBotEquipCommand,               rbac::RBAC_PERM_COMMAND_NPCBOT_COMMAND_MISC,       Console::Yes },
+            { "setrole",    HandleNpcBotSetRoleCommand,             rbac::RBAC_PERM_COMMAND_NPCBOT_COMMAND_MISC,       Console::Yes },
             { "updatevisual", HandleNpcBotUpdateVisualCommand,      rbac::RBAC_PERM_COMMAND_NPCBOT_COMMAND_MISC,       Console::Yes },
             { "add",        HandleNpcBotAddCommand,                 rbac::RBAC_PERM_COMMAND_NPCBOT_ADD,                Console::No  },
             { "remove",     HandleNpcBotRemoveCommand,              rbac::RBAC_PERM_COMMAND_NPCBOT_REMOVE,             Console::No  },
@@ -4138,6 +4139,35 @@ public:
         return true;
     }
 
+    static bool HandleNpcBotSetRoleCommand(ChatHandler* /*handler*/, std::string playerName, uint32 botEntry, uint32 roleMask, bool enable)
+    {
+        Player* player = ObjectAccessor::FindPlayerByName(playerName);
+        if (!player) return false;
+
+        Creature* bot = nullptr;
+        for (auto const& pair : *player->GetBotMgr()->GetBotMap())
+        {
+            if (pair.second->GetEntry() == botEntry)
+            {
+                bot = pair.second;
+                break;
+            }
+        }
+
+        if (!bot) return false;
+
+        bot_ai* ai = bot->GetBotAI();
+        if (!ai) return false;
+
+        bool hasRole = ai->HasRole(roleMask);
+        if (hasRole != enable)
+        {
+            ai->ToggleRole(roleMask, true); // force = true
+        }
+
+        return true;
+    }
+
     static bool HandleNpcBotEquipCommand(ChatHandler* handler, std::string playerName, uint32 botEntry, uint8 slot, uint32 itemEntry)
     {
         Player* player = ObjectAccessor::FindPlayerByName(playerName);
@@ -4160,7 +4190,14 @@ public:
 
         if (itemEntry == 0) // unequip
         {
-            bot->GetBotAI()->_unequip(slot, player->GetGUID(), false, false);
+            BotEquipResult result = bot->GetBotAI()->_unequip(slot, player->GetGUID(), false, false);
+            if (result != BotEquipResult::BOT_EQUIP_RESULT_OK)
+            {
+                handler->PSendSysMessage("Unequip failed with result code: {}", uint32(result));
+                handler->SetSentErrorMessage(true);
+                return false;
+            }
+            bot->GetBotAI()->SaveStats();
             return true;
         }
 
@@ -4186,10 +4223,11 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
+        bot->GetBotAI()->SaveStats();
         return true;
     }
 
-    static bool HandleNpcBotUpdateVisualCommand(ChatHandler* handler, std::string playerName, uint32 botEntry)
+    static bool HandleNpcBotUpdateVisualCommand(ChatHandler* /*handler*/, std::string playerName, uint32 botEntry)
     {
         Player* player = ObjectAccessor::FindPlayerByName(playerName);
         if (!player) return false;

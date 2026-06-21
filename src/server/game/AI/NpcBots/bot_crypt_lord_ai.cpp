@@ -817,7 +817,7 @@ public:
             return c->getDeathState() == DeathState::Corpse && c->GetDisplayId() == c->GetNativeDisplayId() &&
                 !c->IsVehicle() && !c->isWorldBoss() && !c->IsDungeonBoss() &&
                 ((1 << (c->GetCreatureType()-1)) & ViableCreatureTypesMask) &&
-                !c->IsControlledByPlayer() && !c->IsNPCBot();
+                !c->IsControlledByPlayer() && !c->IsNPCBot() && !IsInBotParty(c);
         }
 
         uint32 _impaleCheckTimer;

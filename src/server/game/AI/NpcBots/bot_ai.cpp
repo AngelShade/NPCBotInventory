@@ -3491,6 +3491,8 @@ void bot_ai::SetStats(bool force)
 
     if (botPet)
         botPet->GetBotPetAI()->SetShouldUpdateStats();
+
+    _saveStats();
 }
 
 //Emotion-based action
