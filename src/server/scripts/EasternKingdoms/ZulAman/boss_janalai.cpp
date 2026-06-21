@@ -24,6 +24,8 @@
 #include "SpellScript.h"
 #include "SpellScriptLoader.h"
 #include "zulaman.h"
+#include "botmgr.h"
+#include "bot_ai.h"
 
 enum Yells
 {
@@ -362,6 +364,48 @@ struct boss_janalai : public BossAI
         });
     }
 
+    void UpdateAI(uint32 diff) override
+    {
+        if (!UpdateVictim())
+            return;
+
+        scheduler.Update(diff);
+
+        // Coordinate bots to focus on Amani Hatchers if they exist
+        if (Creature* hatcher = me->FindNearestCreature(NPC_AMANI_HATCHER, 100.0f, true))
+        {
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            {
+                Player* player = itr->GetSource();
+                if (player && player->GetBotMgr())
+                {
+                    for (auto const& pair : *player->GetBotMgr()->GetBotMap())
+                    {
+                        Creature* bot = pair.second;
+                        if (bot && bot->IsAlive() && bot->IsInCombatWith(me))
+                        {
+                            if (bot->GetBotAI() && bot->GetBotAI()->HasRole(BOT_ROLE_DPS) && !bot->GetBotAI()->HasRole(BOT_ROLE_TANK))
+                            {
+                                if (bot->GetTarget() != hatcher->GetGUID())
+                                {
+                                    bot->SetTarget(hatcher->GetGUID());
+                                    bot->GetMotionMaster()->MoveChase(hatcher);
+                                    bot->AI()->AttackStart(hatcher);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+
+        DoMeleeAttackIfReady();
+    }
+
     bool CheckEvadeIfOutOfCombatArea() const override
     {
         return me->GetPositionZ() <= 12.0f;
@@ -480,9 +524,32 @@ class spell_summon_all_players_dummy: public SpellScript
     }
 };
 
+class spell_janalai_fire_bomb_damage : public SpellScript
+{
+    PrepareSpellScript(spell_janalai_fire_bomb_damage);
+
+    void FilterTargets(std::list<WorldObject*>& targets)
+    {
+        targets.remove_if([](WorldObject* obj)
+        {
+            if (Unit* unit = obj->ToUnit())
+            {
+                return unit->IsNPCBotOrPet();
+            }
+            return true;
+        });
+    }
+
+    void Register() override
+    {
+        OnObjectAreaTargetSelect += SpellObjectAreaTargetSelectFn(spell_janalai_fire_bomb_damage::FilterTargets, EFFECT_0, TARGET_UNIT_DEST_AREA_ENEMY);
+    }
+};
+
 void AddSC_boss_janalai()
 {
     RegisterZulAmanCreatureAI(boss_janalai);
     RegisterZulAmanCreatureAI(npc_janalai_hatcher);
     RegisterSpellScript(spell_summon_all_players_dummy);
+    RegisterSpellScript(spell_janalai_fire_bomb_damage);
 }

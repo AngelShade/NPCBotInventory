@@ -19,6 +19,8 @@
 #include "ScriptedCreature.h"
 #include "SpellInfo.h"
 #include "zulaman.h"
+#include "botmgr.h"
+#include "bot_ai.h"
 
 enum Spells
 {
@@ -258,6 +260,76 @@ struct boss_halazzi : public BossAI
                 break;
         }
         _phase = nextPhase;
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (!UpdateVictim())
+            return;
+
+        scheduler.Update(diff);
+
+        // Coordinate bots to focus on Halazzi's totems first
+        if (Creature* totem = me->FindNearestCreature(NPC_TOTEM, 100.0f, true))
+        {
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            {
+                Player* player = itr->GetSource();
+                if (player && player->GetBotMgr())
+                {
+                    for (auto const& pair : *player->GetBotMgr()->GetBotMap())
+                    {
+                        Creature* bot = pair.second;
+                        if (bot && bot->IsAlive() && bot->IsInCombatWith(me))
+                        {
+                            if (bot->GetBotAI() && bot->GetBotAI()->HasRole(BOT_ROLE_DPS) && !bot->GetBotAI()->HasRole(BOT_ROLE_TANK))
+                            {
+                                if (bot->GetTarget() != totem->GetGUID())
+                                {
+                                    bot->SetTarget(totem->GetGUID());
+                                    bot->GetMotionMaster()->MoveChase(totem);
+                                    bot->AI()->AttackStart(totem);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Coordinate bots to focus on Spirit of the Lynx next
+        else if (Creature* lynx = me->FindNearestCreature(NPC_SPIRIT_LYNX, 100.0f, true))
+        {
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            {
+                Player* player = itr->GetSource();
+                if (player && player->GetBotMgr())
+                {
+                    for (auto const& pair : *player->GetBotMgr()->GetBotMap())
+                    {
+                        Creature* bot = pair.second;
+                        if (bot && bot->IsAlive() && bot->IsInCombatWith(me))
+                        {
+                            if (bot->GetBotAI() && bot->GetBotAI()->HasRole(BOT_ROLE_DPS) && !bot->GetBotAI()->HasRole(BOT_ROLE_TANK))
+                            {
+                                if (bot->GetTarget() != lynx->GetGUID())
+                                {
+                                    bot->SetTarget(lynx->GetGUID());
+                                    bot->GetMotionMaster()->MoveChase(lynx);
+                                    bot->AI()->AttackStart(lynx);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+
+        DoMeleeAttackIfReady();
     }
 
     void KilledUnit(Unit* victim) override

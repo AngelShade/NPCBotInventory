@@ -26,6 +26,8 @@
 #include "SpellScriptLoader.h"
 #include "Weather.h"
 #include "zulaman.h"
+#include "botmgr.h"
+#include "bot_ai.h"
 
 enum Spells
 {
@@ -72,6 +74,8 @@ struct boss_akilzon : public BossAI
         _targetGUID.Clear();
         _cycloneGUID.Clear();
         _isRaining = false;
+        _isStorming = false;
+        _stormPosition.Relocate(0.0f, 0.0f, 0.0f);
 
         SetWeather(WEATHER_STATE_FINE, 0.0f);
 
@@ -114,6 +118,11 @@ struct boss_akilzon : public BossAI
                 EnterEvadeMode();
                 return;
             }
+
+            _isStorming = true;
+            float sx, sy, sz;
+            target->GetPosition(sx, sy, sz);
+            _stormPosition.Relocate(sx, sy, sz);
 
             DoCast(target, SPELL_ELECTRICAL_STORM); // storm cyclon + visual
             target->CastSpell(target, SPELL_ELECTRICAL_STORM_AREA, true); // cloud visual
@@ -176,6 +185,36 @@ struct boss_akilzon : public BossAI
 
     void HandleStormSequence()
     {
+        if (!_isStorming)
+            return;
+
+        Map::PlayerList const& players = me->GetMap()->GetPlayers();
+        for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+        {
+            Player* player = itr->GetSource();
+            if (player && player->GetBotMgr())
+            {
+                for (auto const& pair : *player->GetBotMgr()->GetBotMap())
+                {
+                    Creature* bot = pair.second;
+                    if (bot && bot->IsAlive() && bot->IsInCombatWith(me))
+                    {
+                        if (bot->GetDistance(_stormPosition) > 6.0f)
+                        {
+                            float angle = urand(0, 360) * M_PI / 180.f;
+                            float dist = urand(1, 3);
+                            float px = _stormPosition.GetPositionX() + dist * std::cos(angle);
+                            float py = _stormPosition.GetPositionY() + dist * std::sin(angle);
+                            float pz = _stormPosition.GetPositionZ();
+                            pz = me->GetMap()->GetHeight(bot->GetPhaseMask(), px, py, pz + 2.0f, true);
+                            Position pos(px, py, pz);
+                            bot->GetBotAI()->MoveToSendPosition(pos);
+                        }
+                    }
+                }
+            }
+        }
+
         me->m_Events.AddEventAtOffset([&] {
             HandleStormSequence();
         }, 1s);
@@ -185,6 +224,7 @@ struct boss_akilzon : public BossAI
     {
         if (actionId == ACTION_STORM_EXPIRE)
         {
+            _isStorming = false;
             scheduler.DelayGroup(GROUP_STATIC_DISRUPTION, 3s);
             me->m_Events.AddEventAtOffset([&] {
                 SummonEagles();
@@ -233,6 +273,8 @@ private:
     ObjectGuid _targetGUID;
     ObjectGuid _cycloneGUID;
     bool   _isRaining;
+    bool   _isStorming;
+    Position _stormPosition;
 };
 
 struct npc_akilzon_eagle : public ScriptedAI

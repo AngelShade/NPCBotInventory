@@ -22,6 +22,8 @@
 #include "Player.h"
 #include "SpellScriptLoader.h"
 #include "zulaman.h"
+#include "botmgr.h"
+#include "bot_ai.h"
 
 enum Says
 {
@@ -316,7 +318,26 @@ struct boss_hexlord_malacrass : public BossAI
                 break;
             case ABILITY_TARGET_ENEMY:
             default:
-                target = SelectTarget(SelectTargetMethod::Random, 0, 100, true);
+                if (PlayerAbility[_currentClass][random].spell == SPELL_PR_MIND_CONTROL)
+                {
+                    std::vector<Unit*> bots;
+                    for (auto const& ref : me->GetThreatMgr().GetThreatList())
+                    {
+                        if (Unit* victim = ref->getTarget())
+                        {
+                            if (victim->IsNPCBot() && victim->IsAlive() && me->IsWithinLOSInMap(victim))
+                                bots.push_back(victim);
+                        }
+                    }
+                    if (!bots.empty())
+                        target = bots[urand(0, bots.size() - 1)];
+                    else
+                        target = SelectTarget(SelectTargetMethod::Random, 0, 100, true);
+                }
+                else
+                {
+                    target = SelectTarget(SelectTargetMethod::Random, 0, 100, true);
+                }
                 break;
             case ABILITY_TARGET_HEAL:
                 target = DoSelectLowestHpFriendly(50, 0);
@@ -341,6 +362,60 @@ struct boss_hexlord_malacrass : public BossAI
             UseAbility();
             context.Repeat(_classAbilityTimer);
         });
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        if (!UpdateVictim())
+            return;
+
+        scheduler.Update(diff);
+
+        // Coordinate bots to focus on Hexlord's adds first
+        Creature* targetAdd = nullptr;
+        uint32 const addsList[8] = { NPC_ALYSON_ANTILLE, NPC_LORD_RADAAN, NPC_GAZAKROTH, NPC_DARKHEART, NPC_THURG, NPC_SLITHER, NPC_FENSTALKER, NPC_KORAGG };
+        
+        for (uint32 entry : addsList)
+        {
+            if (Creature* add = me->FindNearestCreature(entry, 100.0f, true))
+            {
+                targetAdd = add;
+                break;
+            }
+        }
+
+        if (targetAdd)
+        {
+            Map::PlayerList const& players = me->GetMap()->GetPlayers();
+            for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
+            {
+                Player* player = itr->GetSource();
+                if (player && player->GetBotMgr())
+                {
+                    for (auto const& pair : *player->GetBotMgr()->GetBotMap())
+                    {
+                        Creature* bot = pair.second;
+                        if (bot && bot->IsAlive() && bot->IsInCombatWith(me))
+                        {
+                            if (bot->GetBotAI() && bot->GetBotAI()->HasRole(BOT_ROLE_DPS) && !bot->GetBotAI()->HasRole(BOT_ROLE_TANK))
+                            {
+                                if (bot->GetTarget() != targetAdd->GetGUID())
+                                {
+                                    bot->SetTarget(targetAdd->GetGUID());
+                                    bot->GetMotionMaster()->MoveChase(targetAdd);
+                                    bot->AI()->AttackStart(targetAdd);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+
+        DoMeleeAttackIfReady();
     }
 
     void KilledUnit(Unit* victim) override

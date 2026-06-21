@@ -386,7 +386,10 @@ struct npc_zuljin_vortex : public ScriptedAI
     void SpellHit(Unit* caster, SpellInfo const* spell) override
     {
         if (spell->Id == SPELL_ZAP_INFORM)
-            DoCast(caster, SPELL_ZAP_DAMAGE, true);
+        {
+            if (caster && !caster->IsNPCBot())
+                DoCast(caster, SPELL_ZAP_DAMAGE, true);
+        }
     }
 
     void UpdateAI(uint32 /*diff*/) override
