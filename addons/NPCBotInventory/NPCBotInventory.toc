@@ -1,0 +1,9 @@
+## Interface: 30300
+## Title: NPCBotManager
+## Author: Chibisan
+## Version: 1.22
+## Notes: NPCBot manager UI. Legendary mentions: Belgarth and Dinkledork. Dependencies: None.
+## SavedVariables: BotInventoryDB
+
+NPCBotInventory.lua
+BotManagerUI_Editor.lua
