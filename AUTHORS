@@ -1,3 +1,19 @@
+# NPCBotInventory Fork — Authors
+
+## Fork Maintainer
+**AngelShade** (aka Chibisan)
+- NPCBotInventory addon (Bot Manager UI, equipment system, 3D preview, gear recommendations)
+- Server-side NpcBot extensions (equip commands, item restrictions, updatevisual)
+- Repository: https://github.com/AngelShade/NPCBotInventory
+
+## Fork Base
+This fork is based on [Day36512/AzerothCore-wotlk-with-NPCBots](https://github.com/Day36512/AzerothCore-wotlk-with-NPCBots),
+which builds on [trickerer's NPCBots](https://github.com/trickerer/AzerothCore-wotlk-with-NPCBots).
+
+Special thanks: Belgarth and Dinkledork (legendary mentions in the addon).
+
+---
+
 # List of AUTHORS who contributed over time to the AzerothCore project
 
 ## Warning
